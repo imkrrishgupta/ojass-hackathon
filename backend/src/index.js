@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config({
-  path: path.resolve(__dirname, "../../.env"),
+  path: "./.env"
 });
 
 const PORT = process.env.PORT;
@@ -22,10 +22,7 @@ const server = http.createServer(app);
 // 🔥 attach socket.io
 const io = new Server(server, {
   cors: {
-    origin:
-      process.env.NODE_ENV === "production"
-        ? process.env.CORS_ORIGIN_PROD || process.env.FRONTEND_URL
-        : process.env.CORS_ORIGIN_DEV || process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: process.env.NODE_ENV === "production" ? process.env.CORS_ORIGIN_PROD : process.env.CORS_ORIGIN_DEV,
     credentials: true
   }
 });

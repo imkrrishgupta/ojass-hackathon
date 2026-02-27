@@ -17,7 +17,7 @@ const userSchema = new mongoose.Schema(
       length: [10, "Phone number must be 10 digits"],
     },
     avatar: {
-      type: String, // Cloudinary URL
+      type: String,
       default: process.env.DEFAULT_AVATAR_URL,
     },
 

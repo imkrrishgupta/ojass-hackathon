@@ -68,7 +68,7 @@ export const registerUser = asyncHandler(async (req, res) => {
       avatar = await uploadOnCloudinary(avatarLocalPath.path);
             
       if (process.env.NODE_ENV !== "production"){
-        console.log("Uploaded avatar", avatar.public_id);
+        console.log("Uploaded avatar");
       }
             
     } catch (error) {
@@ -340,9 +340,8 @@ export const sendOTP = asyncHandler(async (req, res) => {
   user.otpExpiry = otpExpiry;
   await user.save({ validateBeforeSave: false });
 
-  // TODO: Send OTP via SMS service (Twilio, AWS SNS, etc.)
-  // For now, we'll log it (only for development)
-  console.log(`OTP for ${cleanPhone}: ${otp}`);
+  // Send OTP via SMS
+  await sendOTPSMS(cleanPhone, otp);
 
   return res
     .status(200)
