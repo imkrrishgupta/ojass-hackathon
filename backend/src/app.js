@@ -25,6 +25,7 @@ app.use(cookieParser())
 // import routes
 
 import { errorHandler } from "./middlewares/error.middleware.js";
+import userRoutes from "./routes/user.route.js";
 
 app.use(errorHandler);
 

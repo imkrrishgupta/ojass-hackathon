@@ -3,7 +3,25 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { registerLocation, socket } from "../socket.js";
+
+// 📏 Calculate distance between two points in km (Haversine formula)
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Earth radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
 
 // auto recenter map when location updates
 function Recenter({ position }) {
@@ -20,17 +38,7 @@ const fallbackCenter = [28.6139, 77.209];
 
 export default function MapView({ points = [], mapHeight = 320, showRadius = true }) {
   const [myLocation, setMyLocation] = useState(null);
-
-  const safePoints = useMemo(
-    () =>
-      points.filter(
-        (point) =>
-          Number.isFinite(point?.lat) &&
-          Number.isFinite(point?.lng) &&
-          typeof point?.label === "string"
-      ),
-    [points]
-  );
+  const [incidents, setIncidents] = useState([]);
 
   // 📍 get browser location
   useEffect(() => {
@@ -42,6 +50,33 @@ export default function MapView({ points = [], mapHeight = 320, showRadius = tru
         setMyLocation(fallbackCenter);
       }
     );
+  }, []);
+
+  // 🔌 register location for socket distance filtering
+  useEffect(() => {
+    if (!myLocation) return;
+
+    registerLocation({ lat: myLocation[0], lng: myLocation[1] });
+  }, [myLocation]);
+
+  // 🚨 receive nearby incidents from socket
+  useEffect(() => {
+    const handleNearby = (incident) => {
+      const id = incident.id || incident._id || `${incident.lat},${incident.lng}`;
+
+      setIncidents((prev) => {
+        const filtered = prev.filter(
+          (item) => (item.id || item._id || `${item.lat},${item.lng}`) !== id
+        );
+        return [...filtered, incident];
+      });
+    };
+
+    socket.on("INCIDENT_NEARBY", handleNearby);
+
+    return () => {
+      socket.off("INCIDENT_NEARBY", handleNearby);
+    };
   }, []);
 
   if (!myLocation) return null;
@@ -73,12 +108,42 @@ export default function MapView({ points = [], mapHeight = 320, showRadius = tru
         />
       )}
 
-      {/* 🚨 Incident marker */}
-      {safePoints.map((point) => (
-        <Marker key={point.id} position={[point.lat, point.lng]}>
-          <Popup>{point.label}</Popup>
-        </Marker>
-      ))}
+      {/* 🚨 Incident markers */}
+      {incidents.map((item) => {
+        const distance = item.distance || getDistance(
+          myLocation[0],
+          myLocation[1],
+          item.lat,
+          item.lng
+        );
+        
+        return (
+          <Marker
+            key={item.id || item._id || `${item.lat},${item.lng}`}
+            position={[item.lat, item.lng]}
+          >
+            <Popup>
+              <div>
+                <strong>🚨 Incident</strong>
+                <br />
+                <span>Distance: {distance.toFixed(2)} km</span>
+                {item.type && (
+                  <>
+                    <br />
+                    <span>Type: {item.type}</span>
+                  </>
+                )}
+                {item.title && (
+                  <>
+                    <br />
+                    <span>Title: {item.title}</span>
+                  </>
+                )}
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
     </MapContainer>
   );
 }
