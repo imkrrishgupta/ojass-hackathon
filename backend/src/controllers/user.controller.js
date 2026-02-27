@@ -122,15 +122,13 @@ export const loginUser = asyncHandler(async (req, res) => {
 
   await sendOTPSMS(phone, otp);
 
-  const loggedInUser = await User.findById(user._id).select("-refreshToken location");
-
   return res.status(200)
   .cookie("accessToken", accessToken, cookieOptions)
   .cookie("refreshToken", refreshToken, cookieOptions)
   .json(
     new ApiResponse(
       200,
-      loggedInUser,
+      {},
       "User logged in successfully"
     )
   );

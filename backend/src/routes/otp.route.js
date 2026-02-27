@@ -1,11 +1,11 @@
 import { Router } from "express";
+
 import { 
-    sendOtpController, 
-    verifyOtpController 
+    verifyOTP
 } from "../controllers/otp.controller.js";
 
 const router = Router();
 
-router.post("/verify", verifyOtpController);
+router.route("/verify").post(verifyOTP);
 
 export default router;

@@ -58,11 +58,6 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    isPhoneVerified: {
-      type: Boolean,
-      default: false,
-    },
-
     refreshToken: { type: String },
     lastSeen: { type: Date, default: Date.now },
   },
@@ -73,10 +68,9 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ location: "2dsphere" });
 
 // Hash password before saving
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, Number(process.env.ENCRYPTION_ROUND));
-  next();
 });
 
 // Compare password
