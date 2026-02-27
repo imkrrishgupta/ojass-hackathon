@@ -7,18 +7,30 @@ import jwt from "jsonwebtoken";
 
 // ── Helper: generate both tokens and save refresh token to DB ─────────────────
 const generateAccessAndRefreshToken = async (userId) => {
-  const user = await User.findById(userId);
-  const accessToken = user.generateAccessToken();
-  const refreshToken = user.generateRefreshToken();
-  user.refreshToken = refreshToken;
-  await user.save({ validateBeforeSave: false });
-  return { accessToken, refreshToken };
-};
+    try {
+        const user = await User.findById(userId);
+    
+        if (!user){
+            throw new ApiError(404, "User not found");
+        }
+    
+        const accessToken = user.generateAccessToken();
+        const refreshToken = user.generateRefreshToken();
+    
+        user.refreshToken = refreshToken;
+        await user.save({ validateBeforeSave: false });
+        
+        return { accessToken, refreshToken };
+
+    } catch (error) {
+        throw new ApiError(error.statusCode || 500, "Something went wrong while generating access and refresh tokens");
+    }
+}
 
 const cookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
-  sameSite: "strict",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
 };
 
 // ── Register ─────────────────────────────────────────────────────────────────
@@ -232,7 +244,7 @@ export const updateAvatar = asyncHandler(async (req, res) => {
 
   const user = await User.findByIdAndUpdate(
     req.user._id,
-    { avatar: uploaded.secure_url, avatarPublicId: uploaded.public_id },
+    { avatar: uploaded.secure_url },
     { new: true }
   ).select("-password -refreshToken");
 

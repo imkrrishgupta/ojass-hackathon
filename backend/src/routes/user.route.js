@@ -1,4 +1,5 @@
 import { Router } from "express";
+
 import {
   registerUser,
   loginUser,
@@ -12,22 +13,30 @@ import {
   addGuardian,
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
-import { upload } from "../middlewares/multer.middleware.js";
+import { uploadAvatar } from "../middlewares/multer.middleware.js";
 
 const router = Router();
 
 // Public routes
-router.post("/api/v1/users/register", upload.single("avatar"), registerUser);
-router.post("/api/v1/users/login", loginUser);
-router.post("/api/v1/users/refresh-token", refreshAccessToken);
+router.route("/register").post(
+  uploadAvatar.single("avatar"), registerUser
+);
+
+router.route("/login").post(loginUser);
 
 // Protected routes (require JWT)
-router.post("/api/v1/users/logout", verifyJWT, logoutUser);
-router.get("/api/v1/users/me", verifyJWT, getCurrentUser);
-router.patch("/api/v1/users/location", verifyJWT, updateLocation);
-router.patch("/api/v1/users/profile", verifyJWT, updateProfile);
-router.patch("/api/v1/users/avatar", verifyJWT, upload.single("avatar"), updateAvatar);
-router.patch("/api/v1/users/change-password", verifyJWT, changePassword);
-router.post("/api/v1/users/guardians", verifyJWT, addGuardian);
+router.route("/logout").post(verifyJWT, logoutUser);
+
+router.route("/me").get(verifyJWT, getCurrentUser);
+
+router.route("/location").patch(verifyJWT, updateLocation);
+
+router.route("/update-profile").patch(verifyJWT, updateProfile);
+
+router.route("/update-avatar").patch(verifyJWT, uploadAvatar.single("avatar"), updateAvatar);
+
+router.route("/change-password").patch(verifyJWT, changePassword);
+
+router.route("/add-guardians").post(verifyJWT, addGuardian);
 
 export default router;
