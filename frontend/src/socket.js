@@ -1,7 +1,9 @@
 import { io } from "socket.io-client";
 
 const BACKEND_URL =
-  import.meta.env.VITE_BASE_URL
+  import.meta.env.VITE_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5050";
 
 export const socket = io(BACKEND_URL, {
   transports: ["websocket"],
@@ -10,3 +12,46 @@ export const socket = io(BACKEND_URL, {
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
 });
+
+const getStoredUser = () => {
+  try {
+    const raw = localStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+export const registerLocation = ({ lat, lng }) => {
+  const parsedLat = Number(lat);
+  const parsedLng = Number(lng);
+
+  if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) return;
+
+  const token = localStorage.getItem("accessToken");
+  const user = getStoredUser();
+  const userId = user?._id;
+
+  if (!token || !userId) return;
+
+  socket.emit("REGISTER_LOCATION", {
+    lat: parsedLat,
+    lng: parsedLng,
+    userId,
+  });
+};
+
+export const emitIncidentUpdate = (incidentData) => {
+  const user = getStoredUser();
+  const userId = user?._id;
+
+  if (!userId) return;
+
+  socket.emit("INCIDENT_UPDATE", {
+    userId,
+    lat: incidentData.lat,
+    lng: incidentData.lng,
+    type: incidentData.type,
+    description: incidentData.description || incidentData.title || "",
+  });
+};
