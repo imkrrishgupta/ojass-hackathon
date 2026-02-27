@@ -36,34 +36,30 @@ const cookieOptions = {
 // ── Register ─────────────────────────────────────────────────────────────────
 // POST /api/v1/users/register
 export const registerUser = asyncHandler(async (req, res) => {
-  const { fullName, email, password, phone, skills } = req.body;
+  const { fullName, password, phone, skills } = req.body;
 
-  if ([fullName, email, password].some((f) => !f?.trim())) {
-    throw new ApiError(400, "fullName, email, and password are required");
+  if ([fullName, password].some((f) => !f?.trim())) {
+    throw new ApiError(400, "fullName and password are required");
   }
 
-  const existing = await User.findOne({ email });
-  if (existing) throw new ApiError(409, "Email already registered");
+  const existing = await User.findOne({ phone });
+  if (existing) throw new ApiError(409, "Phone number already registered");
 
   // Handle optional avatar upload
   let avatarUrl = "";
-  let avatarPublicId = "";
   if (req.file) {
     const uploaded = await uploadOnCloudinary(req.file.path);
     if (uploaded) {
       avatarUrl = uploaded.secure_url;
-      avatarPublicId = uploaded.public_id;
     }
   }
 
   const user = await User.create({
     fullName,
-    email,
     password,
     phone: phone || "",
     skills: skills ? (Array.isArray(skills) ? skills : JSON.parse(skills)) : [],
     avatar: avatarUrl,
-    avatarPublicId,
   });
 
   const created = await User.findById(user._id).select("-password -refreshToken");
@@ -76,13 +72,13 @@ export const registerUser = asyncHandler(async (req, res) => {
 // ── Login ────────────────────────────────────────────────────────────────────
 // POST /api/v1/users/login
 export const loginUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { phone, password } = req.body;
 
-  if (!email || !password) {
-    throw new ApiError(400, "Email and password are required");
+  if (!phone || !password) {
+    throw new ApiError(400, "Phone number and password are required");
   }
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ phone });
   if (!user) throw new ApiError(404, "User not found");
 
   const isValid = await user.isPasswordCorrect(password);
@@ -204,16 +200,13 @@ export const updateLocation = asyncHandler(async (req, res) => {
 // ── Update Profile ────────────────────────────────────────────────────────────
 // PATCH /api/v1/users/profile
 export const updateProfile = asyncHandler(async (req, res) => {
-  const { fullName, phone, skills, anonymousMode } = req.body;
+  const { fullName, phone, skills } = req.body;
 
   const updates = {};
   if (fullName) updates.fullName = fullName;
   if (phone) updates.phone = phone;
   if (skills)
     updates.skills = Array.isArray(skills) ? skills : JSON.parse(skills);
-  if (typeof anonymousMode === "boolean") updates.anonymousMode = anonymousMode;
-  if (anonymousMode === "true") updates.anonymousMode = true;
-  if (anonymousMode === "false") updates.anonymousMode = false;
 
   const user = await User.findByIdAndUpdate(req.user._id, updates, {
     new: true,
@@ -230,11 +223,6 @@ export const updateProfile = asyncHandler(async (req, res) => {
 export const updateAvatar = asyncHandler(async (req, res) => {
   if (!req.file) {
     throw new ApiError(400, "Avatar file is required");
-  }
-
-  // Delete old avatar from Cloudinary
-  if (req.user.avatarPublicId) {
-    await deleteFromCloudinary(req.user.avatarPublicId);
   }
 
   const uploaded = await uploadOnCloudinary(req.file.path);
@@ -276,24 +264,20 @@ export const changePassword = asyncHandler(async (req, res) => {
 
 // ── Add Guardian ──────────────────────────────────────────────────────────────
 // POST /api/v1/users/guardians
+// Change: Switched search from email to phone to match your schema.
 export const addGuardian = asyncHandler(async (req, res) => {
-  const { guardianEmail } = req.body;
-  if (!guardianEmail) throw new ApiError(400, "Guardian email is required");
+  const { guardianPhone } = req.body;
+  const guardian = await User.findOne({ phone: guardianPhone });
+  
+  if (!guardian) throw new ApiError(404, "Guardian not found");
 
-  const guardian = await User.findOne({ email: guardianEmail });
-  if (!guardian) throw new ApiError(404, "No user found with that email");
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { $addToSet: { guardians: guardian._id } }, // $addToSet prevents duplicate IDs
+    { new: true }
+  ).select("-password -refreshToken");
 
-  const user = await User.findById(req.user._id);
-  if (user.guardians.includes(guardian._id)) {
-    throw new ApiError(409, "Already a guardian");
-  }
-
-  user.guardians.push(guardian._id);
-  await user.save({ validateBeforeSave: false });
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, { guardianId: guardian._id }, "Guardian added"));
+  return res.status(200).json(new ApiResponse(200, user.guardians, "Guardian added"));
 });
 
 // ── Send OTP ──────────────────────────────────────────────────────────────────
@@ -318,8 +302,7 @@ export const sendOTP = asyncHandler(async (req, res) => {
     user = await User.create({
       phone,
       fullName: "New User",
-      email: `user-${Date.now()}@temp.local`, // Temporary email
-      password: "temp_password_123", // Will be changed later
+      password: Math.random().toString(36).slice(-8), // Temporary random password
     });
   }
 

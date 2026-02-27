@@ -9,30 +9,16 @@ const userSchema = new mongoose.Schema(
       required: [true, "Full name is required"],
       trim: true,
     },
-    email: {
-      type: String,
-      required: [true, "Email is required"],
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
     phone: {
       type: String,
+      required: [true, "Phone number is required"],
+      unique: true,
       trim: true,
       length: [10, "Phone number must be 10 digits"],
-    },
-    password: {
-      type: String,
-      required: [true, "Password is required"],
-      minlength: [6, "Password must be at least 6 characters"],
     },
     avatar: {
       type: String, // Cloudinary URL
       default: process.env.DEFAULT_AVATAR_URL,
-    },
-    avatarPublicId: {
-      type: String, // Cloudinary public_id for deletion
-      default: "",
     },
 
     // Skills for Skill Registry
@@ -108,7 +94,7 @@ userSchema.index({ location: "2dsphere" });
 
 // Hash password before saving
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+  if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, Number(process.env.ENCRYPTION_ROUND));
   next();
 });
@@ -123,7 +109,7 @@ userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
       _id: this._id,
-      email: this.email,
+      phone: this.phone,
       fullName: this.fullName,
       role: this.role,
     },
