@@ -1,33 +1,34 @@
-import { useState } from "react";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import AdminDashboard from "./pages/AdminDashboard";
 import Login from "./pages/Login";
 import UserDashboard from "./pages/UserDashboard";
 
 function App() {
-  const [view, setView] = useState("auth");
+  const navigate = useNavigate();
 
   const openUserDashboard = () => {
-    setView("user-dashboard");
+    navigate("/userdashboard");
   };
 
   const openAdminDashboard = () => {
-    setView("admin-dashboard");
+    navigate("/admindashboard");
   };
 
   const backToLogin = () => {
-    setView("auth");
+    navigate("/login");
   };
 
   return (
-    <>
-      {view === "auth" && (
-        <Login onUserLoginSuccess={openUserDashboard} onAdminLogin={openAdminDashboard} />
-      )}
-
-      {view === "user-dashboard" && <UserDashboard onLogout={backToLogin} />}
-
-      {view === "admin-dashboard" && <AdminDashboard onLogout={backToLogin} />}
-    </>
+    <Routes>
+      <Route
+        path="/login"
+        element={<Login onUserLoginSuccess={openUserDashboard} onAdminLogin={openAdminDashboard} />}
+      />
+      <Route path="/userdashboard" element={<UserDashboard onLogout={backToLogin} />} />
+      <Route path="/admindashboard" element={<AdminDashboard onLogout={backToLogin} />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
   );
 }
 
