@@ -2,6 +2,7 @@ import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import AdminDashboard from "./pages/AdminDashboard";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import ReportIncident from "./pages/ReportIncident";
 import UserDashboard from "./pages/UserDashboard";
 
 const ADMIN_PHONE = "9625113505";
@@ -54,10 +55,8 @@ function App() {
           )
         }
       />
-      <Route
-        path="/user-dashboard"
-        element={<UserDashboard onLogout={backToLogin} />}
-      />
+      <Route path="/user-dashboard" element={<UserDashboard onLogout={backToLogin} />} />
+      <Route path="/report-incident" element={<ReportIncident />} />
       <Route
         path="/admin-dashboard"
         element={
