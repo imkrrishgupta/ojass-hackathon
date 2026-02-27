@@ -2,6 +2,7 @@ import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import AdminDashboard from "./pages/AdminDashboard";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import Register from "./pages/Register";
 import ReportIncident from "./pages/ReportIncident";
 import UserDashboard from "./pages/UserDashboard";
 
@@ -52,6 +53,16 @@ function App() {
             isAdminUser() ? <Navigate to="/admin-dashboard" replace /> : <Navigate to="/user-dashboard" replace />
           ) : (
             <Login onAuthSuccess={handleAuthSuccess} />
+          )
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          isAuthenticated() ? (
+            isAdminUser() ? <Navigate to="/admin-dashboard" replace /> : <Navigate to="/user-dashboard" replace />
+          ) : (
+            <Register />
           )
         }
       />

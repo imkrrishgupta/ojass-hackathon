@@ -3,7 +3,7 @@ import { axiosInstance } from "../api/axios.js";
 
 const phoneRegex = /^[0-9]{10}$/; // 10-digit phone number
 
-function PhoneEntry({ onContinue }) {
+function PhoneEntry({ onContinue, onCreateAccount }) {
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -73,6 +73,12 @@ function PhoneEntry({ onContinue }) {
         <p className="terms-text">
           By continuing, I agree to the <a href="#">Terms of Service</a>
         </p>
+
+        <div className="auth-secondary-actions">
+          <button type="button" className="link-btn" onClick={onCreateAccount}>
+            Create New Account
+          </button>
+        </div>
       </form>
     </section>
   );

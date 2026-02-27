@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import PhoneEntry from "./PhoneEntry";
 import OTPVerification from "./OTPVerification";
 import nearhelpLogo from "../assets/nearhelp-logo.svg";
 
 function Login({ onAuthSuccess }) {
+	const navigate = useNavigate();
 	const [step, setStep] = useState("phone"); // phone or otp
 	const [phone, setPhone] = useState("");
 
@@ -21,6 +23,10 @@ function Login({ onAuthSuccess }) {
 		setStep("phone");
 	};
 
+	const handleCreateNewAccount = () => {
+		navigate("/register");
+	};
+
 	return (
 		<main className="auth-page">
 			<header className="auth-topbar">
@@ -31,7 +37,9 @@ function Login({ onAuthSuccess }) {
 				</div>
 			</header>
 
-			{step === "phone" && <PhoneEntry onContinue={handlePhoneContinue} />}
+			{step === "phone" && (
+				<PhoneEntry onContinue={handlePhoneContinue} onCreateAccount={handleCreateNewAccount} />
+			)}
 
 			{step === "otp" && (
 				<OTPVerification
