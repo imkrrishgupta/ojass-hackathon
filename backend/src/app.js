@@ -26,8 +26,10 @@ app.use(cookieParser())
 
 import { errorHandler } from "./middlewares/error.middleware.js";
 import userRouter from "./routes/user.route.js";
+import otpRouter from "./routes/otp.route.js";
 
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/otp", otpRouter);
 
 app.use(errorHandler);
 
