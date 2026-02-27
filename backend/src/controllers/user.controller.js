@@ -38,9 +38,9 @@ const cookieOptions = {
 // ── Register ─────────────────────────────────────────────────────────────────
 // POST /api/v1/users/register
 export const registerUser = asyncHandler(async (req, res) => {
-   const { name, phone } = req.body;
+   const { fullName, phone } = req.body;
 
-  if (!name || !phone) {
+  if (!fullName || !phone) {
     throw new ApiError(400, "Name and phone are required");
   }
 
@@ -75,9 +75,8 @@ export const registerUser = asyncHandler(async (req, res) => {
   }
 
   const user = await User.create({
-    name,
+    fullName,
     phone,
-    role,
     avatar: avatar?.url
   });
 
