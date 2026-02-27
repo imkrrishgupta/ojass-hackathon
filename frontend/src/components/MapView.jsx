@@ -3,8 +3,7 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 
-import { useEffect, useState } from "react";
-import API from "../api/axios.js";
+import { useEffect, useMemo, useState } from "react";
 
 // auto recenter map when location updates
 function Recenter({ position }) {
@@ -17,9 +16,21 @@ function Recenter({ position }) {
   return null;
 }
 
-export default function MapView() {
+const fallbackCenter = [28.6139, 77.209];
+
+export default function MapView({ points = [], mapHeight = 320, showRadius = true }) {
   const [myLocation, setMyLocation] = useState(null);
-  const [incident, setIncident] = useState(null);
+
+  const safePoints = useMemo(
+    () =>
+      points.filter(
+        (point) =>
+          Number.isFinite(point?.lat) &&
+          Number.isFinite(point?.lng) &&
+          typeof point?.label === "string"
+      ),
+    [points]
+  );
 
   // 📍 get browser location
   useEffect(() => {
@@ -27,26 +38,10 @@ export default function MapView() {
       (pos) => {
         setMyLocation([pos.coords.latitude, pos.coords.longitude]);
       },
-      (err) => console.log(err.message)
-    );
-  }, []);
-
-  // 🚨 fetch incident from backend (AXIOS)
-  useEffect(() => {
-    const fetchIncident = async () => {
-      try {
-        const response = await API.get("/incident");  // check this
-
-        const data = response.data.data;  // had to work on this when backend will be connected
-
-        // expected {lat, lng, type}
-        setIncident(data);
-      } catch (err) {
-        console.log(err);
+      () => {
+        setMyLocation(fallbackCenter);
       }
-    };
-
-    fetchIncident();
+    );
   }, []);
 
   if (!myLocation) return null;
@@ -55,7 +50,7 @@ export default function MapView() {
     <MapContainer
       center={myLocation}
       zoom={14}
-      style={{ height: "100vh", width: "100%" }}
+      style={{ height: mapHeight, width: "100%" }}
     >
       <Recenter position={myLocation} />
 
@@ -70,18 +65,20 @@ export default function MapView() {
       </Marker>
 
       {/* 🔵 2km radius */}
-      <Circle
-        center={myLocation}
-        radius={2000}
-        pathOptions={{ color: "blue", fillOpacity: 0.1 }}
-      />
+      {showRadius && (
+        <Circle
+          center={myLocation}
+          radius={2000}
+          pathOptions={{ color: "#5d78d7", fillOpacity: 0.1 }}
+        />
+      )}
 
       {/* 🚨 Incident marker */}
-      {incident && (
-        <Marker position={[incident.lat, incident.lng]}>
-          <Popup>🚨 Incident Location</Popup>
+      {safePoints.map((point) => (
+        <Marker key={point.id} position={[point.lat, point.lng]}>
+          <Popup>{point.label}</Popup>
         </Marker>
-      )}
+      ))}
     </MapContainer>
   );
 }
