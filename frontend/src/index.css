@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 * {
@@ -9,6 +10,92 @@ body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background: #ece9f4;
   color: #1d2630;
+}
+
+.not-found-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(circle at top, #efe9ff 0%, #e9e3f5 45%, #ded7ee 100%);
+  font-family: "Poppins", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.not-found-card {
+  position: relative;
+  width: min(720px, 100%);
+  border-radius: 22px;
+  padding: 36px 36px 40px;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f1ff 100%);
+  box-shadow: 0 22px 50px rgba(88, 72, 140, 0.25);
+  text-align: center;
+  border: 1px solid rgba(170, 152, 220, 0.45);
+  animation: floatIn 0.6s ease-out both;
+}
+
+.not-found-glow {
+  position: absolute;
+  inset: -2px;
+  border-radius: 24px;
+  background: linear-gradient(120deg, rgba(177, 150, 233, 0.45), rgba(123, 109, 203, 0.2));
+  filter: blur(18px);
+  opacity: 0.6;
+  z-index: -1;
+}
+
+.not-found-card h1 {
+  margin: 0 0 6px;
+  font-size: clamp(64px, 12vw, 120px);
+  font-weight: 700;
+  color: #9a84d8;
+  letter-spacing: 1px;
+}
+
+.not-found-card h2 {
+  margin: 0 0 10px;
+  font-size: clamp(22px, 4vw, 32px);
+  color: #4b445f;
+  font-weight: 600;
+}
+
+.not-found-card p {
+  margin: 0 auto 22px;
+  max-width: 420px;
+  color: #6b6681;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.not-found-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 28px;
+  border-radius: 14px;
+  background: linear-gradient(120deg, #b296f2 0%, #9a84d8 100%);
+  color: #fff;
+  font-weight: 600;
+  font-size: 16px;
+  text-decoration: none;
+  box-shadow: 0 14px 28px rgba(120, 98, 182, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.not-found-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 34px rgba(120, 98, 182, 0.35);
+  text-decoration: none;
+}
+
+@keyframes floatIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 a {
