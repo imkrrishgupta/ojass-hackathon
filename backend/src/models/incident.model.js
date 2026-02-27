@@ -1,28 +1,5 @@
 import mongoose from "mongoose";
 
-const responderSchema = new mongoose.Schema(
-  {
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    fullName: {
-      type: String,
-      default: "Responder",
-    },
-    phone: {
-      type: String,
-      default: "",
-    },
-    joinedAt: {
-      type: Date,
-      default: Date.now,
-    },
-  },
-  { _id: false }
-);
-
 const incidentSchema = new mongoose.Schema(
   {
     createdBy: {
@@ -30,52 +7,33 @@ const incidentSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    reporterName: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    reporterPhone: {
-      type: String,
-      required: true,
-      trim: true,
-    },
     type: {
       type: String,
+      enum: ["car_breakdown", "gas_leak", "urgent_help", "medical", "others"],
       required: true,
-      enum: ["fire", "road", "theft", "health", "other"],
     },
-    description: {
+    message: {
       type: String,
-      default: "",
       trim: true,
-      maxlength: 1000,
-    },
-    radiusMeters: {
-      type: Number,
-      default: 2000,
-      enum: [500, 1000, 2000],
+      default: "",
     },
     location: {
-      type: {
-        type: String,
-        enum: ["Point"],
-        default: "Point",
+      lat: {
+        type: Number,
+        required: true,
       },
-      coordinates: {
-        type: [Number],
+      lng: {
+        type: Number,
         required: true,
       },
     },
-    status: {
-      type: String,
-      enum: ["open", "resolved"],
-      default: "open",
-      index: true,
+    radius: {
+      type: Number,
+      default: 2000, // meters (2km)
     },
-    responders: {
-      type: [responderSchema],
-      default: [],
+    active: {
+      type: Boolean,
+      default: true,
     },
     resolvedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -86,10 +44,13 @@ const incidentSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    severity: {
+      type: String,
+      enum: ["low", "medium", "high"],
+      default: "low",
+    },
   },
   { timestamps: true }
 );
-
-incidentSchema.index({ location: "2dsphere" });
 
 export const Incident = mongoose.model("Incident", incidentSchema);
