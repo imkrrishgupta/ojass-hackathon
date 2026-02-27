@@ -81,8 +81,6 @@ function Register() {
       <section className="auth-body">
         <form className="auth-card" onSubmit={handleSubmit}>
           <h2>Create New Account</h2>
-          <p className="subtitle">Enter name, phone number, and avatar to register</p>
-
           <label className="input-label" htmlFor="register-name">
             Name
           </label>
