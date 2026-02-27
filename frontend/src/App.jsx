@@ -1,17 +1,18 @@
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import AdminDashboard from "./pages/AdminDashboard";
 import Login from "./pages/Login";
+import NotFound from "./pages/NotFound";
 import UserDashboard from "./pages/UserDashboard";
 
 function App() {
   const navigate = useNavigate();
 
   const openUserDashboard = () => {
-    navigate("/userdashboard");
+    navigate("/user-dashboard");
   };
 
   const openAdminDashboard = () => {
-    navigate("/admindashboard");
+    navigate("/admin-dashboard");
   };
 
   const backToLogin = () => {
@@ -27,7 +28,7 @@ function App() {
       <Route path="/user-dashboard" element={<UserDashboard onLogout={backToLogin} />} />
       <Route path="/admin-dashboard" element={<AdminDashboard onLogout={backToLogin} />} />
       <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
