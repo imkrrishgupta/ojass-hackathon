@@ -21,28 +21,11 @@ const userSchema = new mongoose.Schema(
       default: process.env.DEFAULT_AVATAR_URL,
     },
 
-    // Skills for Skill Registry
-    skills: {
-      type: [String],
-      enum: [
-        "CPR",
-        "doctor",
-        "nurse",
-        "paramedic",
-        "firefighter",
-        "police",
-        "mechanic",
-        "electrician",
-        "other",
-      ],
-      default: [],
-    },
 
     // GeoJSON location — 2dsphere for radius queries
     location: {
       type: {
         type: String,
-        enum: ["Point"],
         default: "Point",
       },
       coordinates: {
@@ -57,15 +40,12 @@ const userSchema = new mongoose.Schema(
     successfulResponses: { type: Number, default: 0 },
     falseAlertCount: { type: Number, default: 0 },
     isSuspended: { type: Boolean, default: false },
-    suspendedUntil: { type: Date },
-    suspendReason: { type: String },
 
     // Guardian mode — guardians are notified before community
     guardians: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 
     role: {
       type: String,
-      enum: ["user", "admin"],
       default: "user",
     },
 
