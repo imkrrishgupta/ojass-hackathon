@@ -23,45 +23,73 @@ function Register() {
     setStatus({ type: "", message: "" });
 
     if (!name.trim()) {
-      setStatus({ type: "error", message: "Name is required." });
-      return;
+      return setStatus({ type: "error", message: "Name is required." });
     }
 
     if (!phoneRegex.test(phone)) {
-      setStatus({ type: "error", message: "Please enter a valid 10-digit phone number." });
-      return;
-    }
-
-    if (!avatar) {
-      setStatus({ type: "error", message: "Avatar is required." });
-      return;
+      return setStatus({
+        type: "error",
+        message: "Please enter a valid 10-digit phone number.",
+      });
     }
 
     setLoading(true);
+
     try {
       const formData = new FormData();
       formData.append("name", name.trim());
       formData.append("phone", phone);
-      formData.append("avatar", avatar);
 
-      await axiosInstance.post("/users/register", formData, {
+      // 🟢 avatar optional
+      if (avatar) {
+        const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+
+        if (!allowedTypes.includes(avatar.type)) {
+          setLoading(false);
+          return setStatus({
+            type: "error",
+            message: "Only JPG, PNG, WEBP images allowed.",
+          });
+        }
+
+        if (avatar.size > 2 * 1024 * 1024) {
+          setLoading(false);
+          return setStatus({
+            type: "error",
+            message: "Image must be less than 2MB.",
+          });
+        }
+
+        formData.append("avatar", avatar);
+      }
+
+      const response = await axiosInstance.post("/users/register", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        withCredentials: true,
+        timeout: 15000,
       });
 
-      setStatus({
-        type: "success",
-        message: "Registration complete. Redirecting to login...",
-      });
+      if (response.data?.success) {
+        setStatus({
+          type: "success",
+          message: "Registration complete. Redirecting to login...",
+        });
 
-      setTimeout(() => {
-        navigate("/login", { replace: true });
-      }, 1000);
+        setTimeout(() => {
+          navigate("/login", { replace: true });
+        }, 1200);
+      }
+
     } catch (error) {
+      console.error("Register error:", error);
+
       setStatus({
         type: "error",
-        message: error.response?.data?.message || "Registration failed. Please try again.",
+        message:
+          error.response?.data?.message ||
+          "Registration failed. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -81,6 +109,7 @@ function Register() {
       <section className="auth-body">
         <form className="auth-card" onSubmit={handleSubmit}>
           <h2>Create New Account</h2>
+
           <label className="input-label" htmlFor="register-name">
             Name
           </label>
@@ -89,7 +118,7 @@ function Register() {
             className="text-input"
             type="text"
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            onChange={(e) => setName(e.target.value)}
             placeholder="Enter your name"
             autoComplete="name"
           />
@@ -111,18 +140,20 @@ function Register() {
           </div>
 
           <label className="input-label" htmlFor="register-avatar">
-            Avatar
+            Avatar (optional)
           </label>
           <input
             id="register-avatar"
             className="text-input"
             type="file"
             accept="image/*"
-            onChange={(event) => setAvatar(event.target.files?.[0] || null)}
+            onChange={(e) => setAvatar(e.target.files?.[0] || null)}
           />
 
           {status.message && (
-            <p className={status.type === "success" ? "form-success" : "form-error"}>{status.message}</p>
+            <p className={status.type === "success" ? "form-success" : "form-error"}>
+              {status.message}
+            </p>
           )}
 
           <button type="submit" className="primary-btn" disabled={loading}>
@@ -130,7 +161,11 @@ function Register() {
           </button>
 
           <div className="auth-secondary-actions">
-            <button type="button" className="link-btn" onClick={() => navigate("/login")}> 
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => navigate("/login")}
+            >
               Back to Login
             </button>
           </div>
