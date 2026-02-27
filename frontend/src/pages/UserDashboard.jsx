@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import MapView from "../components/MapView";
 import { Activity, Clock3, MapPin, ShieldAlert, SlidersHorizontal } from "lucide-react";
 
@@ -8,6 +9,8 @@ const userPoints = [
 ];
 
 function UserDashboard({ onLogout }) {
+  const navigate = useNavigate();
+
   return (
     <main className="dashboard-page user-dashboard-page">
       <section className="dashboard-shell user-dashboard-shell">
@@ -22,6 +25,13 @@ function UserDashboard({ onLogout }) {
           <div className="dashboard-topnav-right">
             <span className="sos-pill">Active SOS: 08</span>
             <span className="muted-meta">Last sync: 2 mins ago</span>
+            <button
+              type="button"
+              className="dashboard-btn report-incident-btn"
+              onClick={() => navigate("/report-incident")}
+            >
+              Report Incident
+            </button>
             <button type="button" className="dashboard-btn" onClick={onLogout}>
               Logout
             </button>
