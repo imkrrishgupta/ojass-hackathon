@@ -22,6 +22,7 @@ function UserDashboard({ onLogout }) {
   const [assessmentLoading, setAssessmentLoading] = useState(false);
   const [assessmentStatus, setAssessmentStatus] = useState("");
   const [bestVolunteerByIncident, setBestVolunteerByIncident] = useState({});
+  const [latestIncidentSuggestion, setLatestIncidentSuggestion] = useState(null);
 
   const fetchOpenIncidents = async () => {
     try {
@@ -60,6 +61,19 @@ function UserDashboard({ onLogout }) {
 
   useEffect(() => {
     fetchAssessmentQuestions("health");
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("latestIncidentSuggestions");
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.suggestedVolunteers)) return;
+      setLatestIncidentSuggestion(parsed);
+    } catch {
+      setLatestIncidentSuggestion(null);
+    }
   }, []);
 
   const handleRespond = async (incidentId) => {
@@ -300,6 +314,18 @@ function UserDashboard({ onLogout }) {
           <section className="dashboard-panel live-map-panel user-panel">
             <h3>Live Map</h3>
             <p className="panel-caption">Auto-updating incidents and responders</p>
+
+            {latestIncidentSuggestion?.suggestedVolunteers?.length ? (
+              <div className="responder-chat-placeholder" style={{ marginTop: 10 }}>
+                <p className="responder-chat-title">LLM Suggested Volunteers (Latest Incident)</p>
+                {latestIncidentSuggestion.suggestedVolunteers.map((item) => (
+                  <p className="responder-chat-line" key={item._id}>
+                    {item.fullName} • Rating {item.volunteerRating}/100 • {item.distanceKm} km
+                  </p>
+                ))}
+              </div>
+            ) : null}
+
             <div className="map-box">
               <MapView points={userPoints} mapHeight={360} />
             </div>

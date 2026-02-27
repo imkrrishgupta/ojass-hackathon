@@ -12,6 +12,10 @@ function ReportIncident() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
   const [guidance, setGuidance] = useState(null);
+  const [submittedIncidentId, setSubmittedIncidentId] = useState("");
+  const [suggestedVolunteers, setSuggestedVolunteers] = useState([]);
+  const [selectedVolunteerId, setSelectedVolunteerId] = useState("");
+  const [sendingSms, setSendingSms] = useState(false);
 
   const isFormValid = useMemo(() => name.trim() && type && description.trim(), [name, type, description]);
 
@@ -56,6 +60,31 @@ function ReportIncident() {
       });
 
       const incident = response.data?.data;
+      setSubmittedIncidentId(incident?._id || "");
+
+      let suggestedList = [];
+
+      try {
+        const suggestResponse = await axiosInstance.get(`/incidents/${incident?._id}/best-volunteer`);
+        suggestedList = suggestResponse.data?.data?.suggestedVolunteers || [];
+      } catch {
+        suggestedList = [];
+      }
+
+      setSuggestedVolunteers(suggestedList);
+      setSelectedVolunteerId(suggestedList[0]?._id || "");
+
+      localStorage.setItem(
+        "latestIncidentSuggestions",
+        JSON.stringify({
+          incidentId: incident?._id,
+          type,
+          description: description.trim(),
+          suggestedVolunteers: suggestedList,
+          createdAt: Date.now(),
+        })
+      );
+
       emitIncidentUpdate({
         _id: incident?._id,
         type,
@@ -65,8 +94,14 @@ function ReportIncident() {
         radiusMeters,
       });
 
-      setStatus({ type: "success", message: "Incident reported successfully." });
-      setTimeout(() => navigate("/user-dashboard"), 900);
+      const namesText = suggestedList.length
+        ? ` Suggested: ${suggestedList.map((item) => item.fullName).join(", ")}.`
+        : "";
+
+      setStatus({
+        type: "success",
+        message: `Incident reported successfully.${namesText} Select one volunteer to send SMS.`,
+      });
     } catch (error) {
       setStatus({
         type: "error",
@@ -74,6 +109,35 @@ function ReportIncident() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendSmsToSelected = async () => {
+    if (!submittedIncidentId || !selectedVolunteerId) {
+      setStatus({ type: "error", message: "Please select a volunteer first." });
+      return;
+    }
+
+    setSendingSms(true);
+    try {
+      const response = await axiosInstance.post(`/incidents/${submittedIncidentId}/notify-suggested`, {
+        selectedVolunteerId,
+      });
+
+      const sentCount = response.data?.data?.sentCount || 0;
+      setStatus({
+        type: "success",
+        message: sentCount
+          ? "SMS sent to selected volunteer successfully."
+          : "Could not send SMS to selected volunteer.",
+      });
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message: error.response?.data?.message || "Failed to send SMS to selected volunteer.",
+      });
+    } finally {
+      setSendingSms(false);
     }
   };
 
@@ -160,6 +224,46 @@ function ReportIncident() {
 
           {status.message ? (
             <p className={status.type === "success" ? "form-success" : "form-error"}>{status.message}</p>
+          ) : null}
+
+          {suggestedVolunteers.length ? (
+            <div className="report-field">
+              <span>LLM Suggested Volunteers (select one)</span>
+              <div className="report-input" style={{ display: "grid", gap: 8 }}>
+                {suggestedVolunteers.map((volunteer) => (
+                  <label key={volunteer._id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input
+                      type="radio"
+                      name="selectedVolunteer"
+                      value={volunteer._id}
+                      checked={selectedVolunteerId === volunteer._id}
+                      onChange={() => setSelectedVolunteerId(volunteer._id)}
+                    />
+                    <span>
+                      {volunteer.fullName} • Rating {volunteer.volunteerRating}/100 • {volunteer.distanceKm} km
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                className="report-submit"
+                onClick={handleSendSmsToSelected}
+                disabled={sendingSms || !selectedVolunteerId}
+              >
+                {sendingSms ? "Sending SMS..." : "Send SMS to Selected Volunteer"}
+              </button>
+
+              <button
+                type="button"
+                className="dashboard-btn"
+                style={{ marginTop: 8 }}
+                onClick={() => navigate("/user-dashboard")}
+              >
+                Skip SMS and Go Back
+              </button>
+            </div>
           ) : null}
 
           <button type="submit" className="report-submit" disabled={loading || !isFormValid}>

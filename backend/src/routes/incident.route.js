@@ -4,6 +4,7 @@ import {
   createIncident,
   listNearbyIncidents,
   listOpenIncidents,
+  notifySuggestedVolunteers,
   resolveIncident,
   respondToIncident,
   suggestBestVolunteer,
@@ -19,5 +20,6 @@ router.route("/admin-summary").get(adminIncidentSummary);
 router.route("/:incidentId/respond").post(verifyJWT, respondToIncident);
 router.route("/:incidentId/resolve").post(verifyJWT, resolveIncident);
 router.route("/:incidentId/best-volunteer").get(verifyJWT, suggestBestVolunteer);
+router.route("/:incidentId/notify-suggested").post(verifyJWT, notifySuggestedVolunteers);
 
 export default router;
