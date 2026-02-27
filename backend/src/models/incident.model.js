@@ -7,16 +7,6 @@ const incidentSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    reporterName: {
-      type: String,
-      trim: true,
-      default: "User",
-    },
-    reporterPhone: {
-      type: String,
-      trim: true,
-      default: "",
-    },
     type: {
       type: String,
       enum: ["car_breakdown", "gas_leak", "urgent_help", "medical", "others"],
@@ -53,14 +43,6 @@ const incidentSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "User",
         },
-        fullName: {
-          type: String,
-          default: "Responder",
-        },
-        phone: {
-          type: String,
-          default: "",
-        },
         joinedAt: {
           type: Date,
           default: Date.now,
@@ -69,18 +51,8 @@ const incidentSchema = new mongoose.Schema(
     ],
     suggestedVolunteers: [
       {
-        userId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-        },
-        fullName: {
-          type: String,
-          default: "",
-        },
-        phone: {
-          type: String,
-          default: "",
-        },
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
       },
     ],
     notifiedSuggestedVolunteerIds: [

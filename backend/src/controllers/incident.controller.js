@@ -6,8 +6,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { runLLMJson } from "../utils/llm.js";
 import { sendEmergencySMS } from "../utils/alertSMS.js";
 
-const sanitizePhone = (phone) => String(phone ?? "").replace(/\D/g, "").slice(-10);
-
 const getDistanceKm = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -177,8 +175,6 @@ export const createIncident = asyncHandler(async (req, res) => {
 
   const incident = await Incident.create({
     createdBy: req.user._id,
-    reporterName: req.user.fullName || "User",
-    reporterPhone: sanitizePhone(req.user.phone),
     type,
     description: description || "",
     radiusMeters: [500, 1000, 2000].includes(Number(radiusMeters))
@@ -196,7 +192,10 @@ export const createIncident = asyncHandler(async (req, res) => {
 });
 
 export const listOpenIncidents = asyncHandler(async (_, res) => {
-  const incidents = await Incident.find({ status: "open" }).sort({ createdAt: -1 });
+  const incidents = await Incident.find({ status: "open" })
+    .populate("createdBy", "fullName phone")
+    .populate("responders.userId", "fullName phone")
+    .sort({ createdAt: -1 });
   return res.status(200).json(new ApiResponse(200, incidents, "Open incidents fetched"));
 });
 
@@ -222,7 +221,10 @@ export const listNearbyIncidents = asyncHandler(async (req, res) => {
         $maxDistance: Number.isNaN(parsedRadius) ? 2000 : parsedRadius,
       },
     },
-  }).sort({ createdAt: -1 });
+  })
+    .populate("createdBy", "fullName phone")
+    .populate("responders.userId", "fullName phone")
+    .sort({ createdAt: -1 });
 
   return res.status(200).json(new ApiResponse(200, incidents, "Nearby incidents fetched"));
 });
@@ -246,8 +248,6 @@ export const respondToIncident = asyncHandler(async (req, res) => {
   if (!alreadyResponding) {
     incident.responders.push({
       userId: req.user._id,
-      fullName: req.user.fullName || "Responder",
-      phone: sanitizePhone(req.user.phone),
     });
     await incident.save();
   }
