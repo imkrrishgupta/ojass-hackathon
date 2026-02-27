@@ -1,6 +1,12 @@
 import { useState } from "react";
 
-function OldUserLogin({ email, onBack, onLogin, onSwitchToSignUp }) {
+function OldUserLogin({
+  email,
+  onBack,
+  onLogin,
+  onSwitchToSignUp,
+  onLoginSuccess,
+}) {
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState({ type: "", message: "" });
 
@@ -12,6 +18,12 @@ function OldUserLogin({ email, onBack, onLogin, onSwitchToSignUp }) {
       type: response.ok ? "success" : "error",
       message: response.message,
     });
+
+    if (response.ok) {
+      setTimeout(() => {
+        onLoginSuccess?.();
+      }, 500);
+    }
   };
 
   return (

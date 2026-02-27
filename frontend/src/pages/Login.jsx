@@ -27,7 +27,7 @@ const writeUsers = (users) => {
 	localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
 };
 
-function Login() {
+function Login({ onUserLoginSuccess, onAdminLogin }) {
 	const [step, setStep] = useState("email");
 	const [email, setEmail] = useState("");
 
@@ -80,6 +80,9 @@ function Login() {
 					<div className="auth-logo-wrap">
 						<img className="auth-logo" src={nearhelpLogo} alt="NearHelp" />
 					</div>
+					<button type="button" className="admin-login-btn" onClick={onAdminLogin}>
+						Admin Login
+					</button>
 				</div>
 			</header>
 
@@ -91,6 +94,7 @@ function Login() {
 					onBack={goBackToEmail}
 					onLogin={handleLogin}
 					onSwitchToSignUp={() => setStep("new")}
+					onLoginSuccess={onUserLoginSuccess}
 				/>
 			)}
 
