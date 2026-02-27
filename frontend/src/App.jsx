@@ -24,8 +24,8 @@ function App() {
         path="/login"
         element={<Login onUserLoginSuccess={openUserDashboard} onAdminLogin={openAdminDashboard} />}
       />
-      <Route path="/userdashboard" element={<UserDashboard onLogout={backToLogin} />} />
-      <Route path="/admindashboard" element={<AdminDashboard onLogout={backToLogin} />} />
+      <Route path="/user-dashboard" element={<UserDashboard onLogout={backToLogin} />} />
+      <Route path="/admin-dashboard" element={<AdminDashboard onLogout={backToLogin} />} />
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
