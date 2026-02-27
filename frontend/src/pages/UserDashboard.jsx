@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import MapView from "../components/MapView";
 import { Activity, Clock3, MapPin, ShieldAlert, SlidersHorizontal, AlertCircle } from "lucide-react";
 import { axiosInstance } from "../api/axios.js";
+import { emitIncidentUpdate } from "../socket.js";
 
 const userPoints = [
   { id: "u-1", lat: 28.621, lng: 77.219, label: "Accident - Connaught Place" },
@@ -23,6 +24,9 @@ function UserDashboard({ onLogout }) {
   const [assessmentStatus, setAssessmentStatus] = useState("");
   const [bestVolunteerByIncident, setBestVolunteerByIncident] = useState({});
   const [latestIncidentSuggestion, setLatestIncidentSuggestion] = useState(null);
+  const [showSosOptions, setShowSosOptions] = useState(false);
+  const [quickSosLoading, setQuickSosLoading] = useState(false);
+  const [quickSosStatus, setQuickSosStatus] = useState("");
 
   const fetchOpenIncidents = async () => {
     try {
@@ -43,12 +47,17 @@ function UserDashboard({ onLogout }) {
     setAssessmentLoading(true);
     setAssessmentStatus("");
     try {
-      const response = await axiosInstance.get(`/assistant/volunteer-questions?incidentType=${type}`);
+      const rawUser = localStorage.getItem("user");
+      const parsedUser = rawUser ? JSON.parse(rawUser) : null;
+      const phoneQuery = parsedUser?.phone ? `&volunteerPhone=${encodeURIComponent(parsedUser.phone)}` : "";
+      const response = await axiosInstance.get(
+        `/assistant/volunteer-questions?incidentType=${type}${phoneQuery}`
+      );
       const questions = response.data?.data?.questions || [];
       setAssessmentQuestions(questions);
       const initialAnswers = {};
       questions.forEach((item) => {
-        initialAnswers[item.id] = "basic";
+        initialAnswers[item.id] = "";
       });
       setAssessmentAnswers(initialAnswers);
     } catch {
@@ -102,6 +111,15 @@ function UserDashboard({ onLogout }) {
   const submitAssessment = async () => {
     if (!assessmentQuestions.length) return;
 
+    const allAnswered = assessmentQuestions.every(
+      (item) => String(assessmentAnswers[item.id] || "").trim().length > 0
+    );
+
+    if (!allAnswered) {
+      setAssessmentStatus("Please answer all AI questions before submitting.");
+      return;
+    }
+
     setAssessmentLoading(true);
     setAssessmentStatus("");
     try {
@@ -111,7 +129,7 @@ function UserDashboard({ onLogout }) {
       const answers = assessmentQuestions.map((question) => ({
         questionId: question.id,
         question: question.question,
-        answer: assessmentAnswers[question.id] || "basic",
+        answerText: assessmentAnswers[question.id] || "",
       }));
 
       const response = await axiosInstance.post("/assistant/rate-volunteer", {
@@ -151,10 +169,54 @@ function UserDashboard({ onLogout }) {
     }
   };
 
+  const triggerSelfSos = async () => {
+    setQuickSosLoading(true);
+    setQuickSosStatus("");
+    try {
+      const location = await new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => resolve({ lat: 28.6139, lng: 77.209 })
+        );
+      });
+
+      const response = await axiosInstance.post("/incidents", {
+        type: "other",
+        description: "SOS triggered: Help needed for self",
+        radiusMeters: 2000,
+        lat: location.lat,
+        lng: location.lng,
+      });
+
+      const incident = response.data?.data;
+
+      emitIncidentUpdate({
+        _id: incident?._id,
+        type: "other",
+        title: "SOS: Help needed for self",
+        lat: location.lat,
+        lng: location.lng,
+        radiusMeters: 2000,
+      });
+
+      setQuickSosStatus("SOS triggered successfully with your current location.");
+      setShowSosOptions(false);
+      await fetchOpenIncidents();
+    } catch (error) {
+      setQuickSosStatus(error.response?.data?.message || "Failed to trigger SOS.");
+    } finally {
+      setQuickSosLoading(false);
+    }
+  };
+
   const totalResponders = useMemo(
     () => incidents.reduce((total, incident) => total + (incident.responders?.length || 0), 0),
     [incidents]
   );
+
+  const allAssessmentAnswered =
+    assessmentQuestions.length > 0 &&
+    assessmentQuestions.every((item) => String(assessmentAnswers[item.id] || "").trim().length > 0);
 
   const latestIncidents = incidents.slice(0, 3);
 
@@ -172,18 +234,13 @@ function UserDashboard({ onLogout }) {
           <div className="dashboard-topnav-right">
             <span className="sos-pill">Active SOS: {incidents.length}</span>
             <span className="muted-meta">Last sync: 2 mins ago</span>
-            <button
-              type="button"
-              className="dashboard-btn report-incident-btn"
-              onClick={() => navigate("/report-incident")}
-            >
-              Report Incident
-            </button>
             <button type="button" className="dashboard-btn" onClick={onLogout}>
               Logout
             </button>
           </div>
         </header>
+
+        {quickSosStatus ? <p className="panel-caption">{quickSosStatus}</p> : null}
 
         <section className="dashboard-stats-row user-stats-row">
           <article className="stat-card">
@@ -267,24 +324,20 @@ function UserDashboard({ onLogout }) {
             </div>
 
             {assessmentQuestions.map((item) => (
-              <div className="report-field mt-2" key={item.id}>
-                <span className="text-xs">{item.question}</span>
-                <select
+              <div className="report-field" key={item.id} style={{ marginTop: 8 }}>
+                <span style={{ fontSize: 12 }}>{item.question}</span>
+                <textarea
                   className="report-input report-select"
-                  value={assessmentAnswers[item.id] || "basic"}
+                  rows={3}
+                  placeholder="Type your response here..."
+                  value={assessmentAnswers[item.id] || ""}
                   onChange={(event) =>
                     setAssessmentAnswers((prev) => ({
                       ...prev,
                       [item.id]: event.target.value,
                     }))
                   }
-                >
-                  <option value="never">Never</option>
-                  <option value="basic">Basic</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
-                  <option value="expert">Expert</option>
-                </select>
+                />
               </div>
             ))}
 
@@ -292,7 +345,7 @@ function UserDashboard({ onLogout }) {
               type="button"
               className="dashboard-btn mt-2.5"
               onClick={submitAssessment}
-              disabled={assessmentLoading || !assessmentQuestions.length}
+              disabled={assessmentLoading || !assessmentQuestions.length || !allAssessmentAnswered}
             >
               {assessmentLoading ? "Rating..." : "Get AI Rating"}
             </button>
@@ -315,7 +368,7 @@ function UserDashboard({ onLogout }) {
             <p className="panel-caption">Auto-updating incidents and responders</p>
 
             {latestIncidentSuggestion?.suggestedVolunteers?.length ? (
-              <div className="responder-chat-placeholder mt-2.5">
+              <div className="responder-chat-placeholder" style={{ marginTop: 10 }}>
                 <p className="responder-chat-title">LLM Suggested Volunteers (Latest Incident)</p>
                 {latestIncidentSuggestion.suggestedVolunteers.map((item) => (
                   <p className="responder-chat-line" key={item._id}>
@@ -331,6 +384,14 @@ function UserDashboard({ onLogout }) {
           </section>
 
           <aside className="dashboard-panel user-panel">
+            <button
+              type="button"
+              className="dashboard-btn report-incident-btn sos-cta-btn"
+              onClick={() => setShowSosOptions(true)}
+            >
+              <ShieldAlert size={28} className="sos-cta-icon" /> SOS
+            </button>
+
             <h3>Live Updates</h3>
             <div className="update-list">
               {latestIncidents.length === 0 ? (
@@ -406,16 +467,41 @@ function UserDashboard({ onLogout }) {
         </section>
       </section>
 
-      {/* Floating Action Button */}
-      <button
-        type="button"
-        className="fixed bottom-8 right-8 w-16 h-16 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 z-40"
-        onClick={() => navigate("/report-incident")}
-        title="Report an incident"
-        aria-label="Report incident"
-      >
-        <AlertCircle size={24} />
-      </button>
+      {showSosOptions ? (
+        <div className="sos-option-overlay" role="dialog" aria-modal="true">
+          <div className="sos-option-popup">
+            <h3>Select SOS Type</h3>
+            <p>Choose what kind of help request you want to trigger.</p>
+            <div className="sos-option-actions">
+              <button
+                type="button"
+                className="report-submit"
+                onClick={triggerSelfSos}
+                disabled={quickSosLoading}
+              >
+                {quickSosLoading ? "Triggering SOS..." : "Help needed for you"}
+              </button>
+              <button
+                type="button"
+                className="report-submit"
+                onClick={() => {
+                  setShowSosOptions(false);
+                  navigate("/report-incident");
+                }}
+              >
+                Help needed for someone
+              </button>
+              <button
+                type="button"
+                className="dashboard-btn"
+                onClick={() => setShowSosOptions(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

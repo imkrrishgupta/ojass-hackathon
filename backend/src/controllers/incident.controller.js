@@ -133,22 +133,38 @@ const computeVolunteerSuggestions = async (incident) => {
   const suggestionMap = new Map(
     scored.map((item) => [
       String(item.candidate._id),
-      {
-        _id: item.candidate._id,
-        fullName: item.candidate.fullName,
-        phone: item.candidate.phone,
-        volunteerRating: item.candidate.volunteerRating,
-        trustScore: item.candidate.trustScore,
-        skills: item.candidate.skills || [],
-        distanceKm: Number(item.distanceKm.toFixed(2)),
-        recommendationScore: Number(item.score.toFixed(3)),
-      },
+      (() => {
+        const ratingInFive = Math.max(0, Math.min(5, Number(item.candidate.volunteerRating || 0) / 20));
+        const selectionFactor = ratingInFive > 0 ? Number((item.distanceKm / ratingInFive).toFixed(4)) : Number.POSITIVE_INFINITY;
+
+        return {
+          _id: item.candidate._id,
+          fullName: item.candidate.fullName,
+          phone: item.candidate.phone,
+          volunteerRating: item.candidate.volunteerRating,
+          trustScore: item.candidate.trustScore,
+          skills: item.candidate.skills || [],
+          distanceKm: Number(item.distanceKm.toFixed(2)),
+          recommendationScore: Number(item.score.toFixed(3)),
+          ratingInFive: Number(ratingInFive.toFixed(2)),
+          selectionFactor,
+        };
+      })()
     ])
   );
 
   const suggestedVolunteers = rankedIds
     .map((id) => suggestionMap.get(id))
     .filter(Boolean)
+    .sort((a, b) => {
+      const factorDiff = Number(a.selectionFactor || Number.POSITIVE_INFINITY) - Number(b.selectionFactor || Number.POSITIVE_INFINITY);
+      if (factorDiff !== 0) return factorDiff;
+
+      const ratingDiff = Number(b.volunteerRating || 0) - Number(a.volunteerRating || 0);
+      if (ratingDiff !== 0) return ratingDiff;
+
+      return Number(a.distanceKm || 0) - Number(b.distanceKm || 0);
+    })
     .slice(0, 3);
 
   return {

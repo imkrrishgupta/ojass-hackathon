@@ -70,16 +70,37 @@ const levelToScore = {
 const normalizePhone = (phone) => String(phone ?? "").replace(/\D/g, "").slice(-10);
 
 export const getVolunteerQuestions = asyncHandler(async (req, res) => {
-  const { incidentType = "other" } = req.query;
+  const { incidentType = "other", volunteerPhone = "" } = req.query;
   const type = volunteerQuestionBank[incidentType] ? incidentType : "other";
+  const cleanPhone = normalizePhone(volunteerPhone);
+
+  let volunteerProfile = null;
+  if (cleanPhone) {
+    volunteerProfile = await User.findOne({ phone: cleanPhone }).select(
+      "fullName phone skills volunteerRating volunteerAssessment"
+    );
+  }
 
   let questions;
 
   try {
+    const profileContext = volunteerProfile
+      ? {
+          fullName: volunteerProfile.fullName,
+          skills: volunteerProfile.skills || [],
+          volunteerRating: volunteerProfile.volunteerRating || 0,
+          previousAssessment: volunteerProfile.volunteerAssessment || [],
+        }
+      : null;
+
     const llmOutput = await runLLMJson({
       systemPrompt:
-        "You generate volunteer assessment questions for emergency response. Return JSON only.",
-      userPrompt: `Generate 6 concise volunteer-rating questions for incident type '${type}'. Include 2 common and 4 incident-specific. Return JSON with keys: scale(array with never,basic,intermediate,advanced,expert), questions(array of {id, question, weight}). id must be lowercase snake_case. weight between 1.0 and 1.8.`,
+        "You generate adaptive volunteer assessment interview questions for emergency response. Return JSON only.",
+      userPrompt: `Generate exactly 6 concise interview questions for incident type '${type}'. Make them dynamic and practical for on-ground response. Include 2 common and 4 incident-specific questions. For each question, expect free-text answers (not fixed options).${
+        profileContext
+          ? ` Personalize question difficulty using this volunteer profile: ${JSON.stringify(profileContext)}.`
+          : ""
+      } Return JSON with keys: questions(array of {id, question, weight, intent}). id must be lowercase snake_case. weight between 1.0 and 1.8. intent is a short phrase on what capability this question tests.`,
       temperature: 0.3,
       maxTokens: 700,
     });
@@ -98,7 +119,7 @@ export const getVolunteerQuestions = asyncHandler(async (req, res) => {
       200,
       {
         incidentType: type,
-        scale: ["never", "basic", "intermediate", "advanced", "expert"],
+        answerMode: "text",
         questions,
       },
       "Volunteer assessment questions generated"
@@ -119,13 +140,17 @@ export const rateVolunteer = asyncHandler(async (req, res) => {
     .map((item, index) => {
       const questionId = String(item.questionId || `q_${index + 1}`);
       const question = String(item.question || "").trim() || `Question ${index + 1}`;
-      const normalizedLevel = String(item.answer || "basic").toLowerCase();
-      const score = levelToScore[normalizedLevel] || Number(item.score) || 1;
+      const answerText = String(item.answerText || item.answer || "").trim();
+      const normalizedLevel = String(item.answer || "").toLowerCase();
+      const fallbackScoreFromLevel = levelToScore[normalizedLevel] || 0;
+      const fallbackScoreFromText = answerText.length >= 180 ? 4 : answerText.length >= 90 ? 3 : answerText.length >= 30 ? 2 : 1;
+      const score = Number(item.score) || fallbackScoreFromLevel || fallbackScoreFromText;
 
       return {
         questionId,
         question,
-        answer: normalizedLevel,
+        answer: normalizedLevel || answerText || "basic",
+        answerText,
         score,
       };
     })
@@ -140,10 +165,10 @@ export const rateVolunteer = asyncHandler(async (req, res) => {
   try {
     llmRating = await runLLMJson({
       systemPrompt:
-        "You are an emergency volunteer evaluator. Output strict JSON only with practical scoring.",
+        "You are an emergency volunteer evaluator. Score each answer strictly based on practical emergency readiness. Output strict JSON only.",
       userPrompt: `Incident type: ${type}. Evaluate volunteer response quality using this answer set: ${JSON.stringify(
         normalizedAnswers
-      )}. Return JSON keys: rating(number 0-100), grade(one of A,B,C,D), strengths(array of 2-4 strings), improvements(array of 2-4 strings), questionScores(array of {questionId, score, rationale}).`,
+      )}. Return JSON keys: rating(number 0-100), grade(one of A,B,C,D), strengths(array of 2-4 strings), improvements(array of 2-4 strings), questionScores(array of {questionId, score, rationale}). questionScores.score must be integer from 1 to 5 and reflect the answer text quality, correctness, and actionability.`,
       temperature: 0.2,
       maxTokens: 900,
     });
@@ -159,7 +184,12 @@ export const rateVolunteer = asyncHandler(async (req, res) => {
   const grade = llmRating?.grade || (rating >= 80 ? "A" : rating >= 65 ? "B" : rating >= 50 ? "C" : "D");
 
   const llmQuestionScores = Array.isArray(llmRating?.questionScores) ? llmRating.questionScores : [];
-  const llmScoreMap = new Map(llmQuestionScores.map((item) => [item.questionId, Number(item.score || 0)]));
+  const llmScoreMap = new Map(
+    llmQuestionScores.map((item) => [
+      item.questionId,
+      Math.max(1, Math.min(5, Math.round(Number(item.score || 0) || 0))),
+    ])
+  );
 
   const storedAssessment = normalizedAnswers.map((item) => ({
     questionId: item.questionId,

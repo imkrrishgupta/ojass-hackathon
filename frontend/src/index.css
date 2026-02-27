@@ -212,6 +212,36 @@ body {
   box-shadow: 0 18px 30px rgba(120, 98, 182, 0.35);
 }
 
+.report-suggestion-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 20, 46, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.report-suggestion-popup {
+  width: min(560px, 100%);
+  background: linear-gradient(140deg, #ffffff 0%, #f4f0ff 100%);
+  border: 1px solid rgba(170, 152, 220, 0.45);
+  border-radius: 18px;
+  box-shadow: 0 22px 48px rgba(88, 72, 140, 0.22);
+  padding: 18px;
+}
+
+.report-suggestion-popup h3 {
+  margin: 0;
+  color: #4a4064;
+}
+
+.report-suggestion-popup p {
+  margin: 8px 0 0;
+  color: #6b6681;
+  font-size: 14px;
+}
+
 .report-incident-btn {
   background: linear-gradient(120deg, #b69bf2 0%, #9b83d8 100%);
   color: #fff;
@@ -221,6 +251,58 @@ body {
 
 .report-incident-btn:hover {
   text-decoration: none;
+}
+
+.sos-option-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 20, 46, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.sos-option-popup {
+  width: min(520px, 100%);
+  background: linear-gradient(140deg, #ffffff 0%, #f4f0ff 100%);
+  border: 1px solid rgba(170, 152, 220, 0.45);
+  border-radius: 18px;
+  box-shadow: 0 22px 48px rgba(88, 72, 140, 0.22);
+  padding: 18px;
+}
+
+.sos-option-popup h3 {
+  margin: 0;
+  color: #4a4064;
+}
+
+.sos-option-popup p {
+  margin: 8px 0 0;
+  color: #6b6681;
+  font-size: 14px;
+}
+
+.sos-option-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.sos-cta-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  padding: 14px 18px;
+  margin-bottom: 12px;
+}
+
+.sos-cta-icon {
+  flex-shrink: 0;
 }
 
 @keyframes floatIn {

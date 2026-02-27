@@ -59,3 +59,11 @@ export const emitIncidentUpdate = (incidentData) => {
     lng: parsedLng,
   });
 };
+
+export const emitResponderUpdate = (payload) => {
+  socket.emit("RESPONDER_UPDATE", payload);
+};
+
+export const emitIncidentResolved = (payload) => {
+  socket.emit("INCIDENT_RESOLVED", payload);
+};

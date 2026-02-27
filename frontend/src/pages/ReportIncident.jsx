@@ -24,6 +24,7 @@ function ReportIncident() {
   const [suggestedVolunteers, setSuggestedVolunteers] = useState([]);
   const [selectedVolunteerId, setSelectedVolunteerId] = useState("");
   const [sendingSms, setSendingSms] = useState(false);
+  const [showSuggestionPopup, setShowSuggestionPopup] = useState(false);
 
   const isFormValid = useMemo(() => type && description.trim(), [type, description]);
 
@@ -81,6 +82,7 @@ function ReportIncident() {
 
       setSuggestedVolunteers(suggestedList);
       setSelectedVolunteerId(suggestedList[0]?._id || "");
+      setShowSuggestionPopup(suggestedList.length > 0);
 
       localStorage.setItem(
         "latestIncidentSuggestions",
@@ -139,6 +141,7 @@ function ReportIncident() {
           ? "SMS sent to selected volunteer successfully."
           : "Could not send SMS to selected volunteer.",
       });
+      setShowSuggestionPopup(false);
     } catch (error) {
       setStatus({
         type: "error",
@@ -267,6 +270,50 @@ function ReportIncident() {
             {loading ? "Submitting..." : "Submit Report"}
           </button>
         </form>
+
+        {showSuggestionPopup && suggestedVolunteers.length ? (
+          <div className="report-suggestion-overlay" role="dialog" aria-modal="true">
+            <div className="report-suggestion-popup">
+              <h3>Top Rated Volunteers (LLM)</h3>
+              <p>Select one volunteer to notify via SMS.</p>
+
+              <div className="report-input" style={{ display: "grid", gap: 8, marginTop: 10 }}>
+                {suggestedVolunteers.map((volunteer) => (
+                  <label key={volunteer._id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input
+                      type="radio"
+                      name="selectedVolunteer"
+                      value={volunteer._id}
+                      checked={selectedVolunteerId === volunteer._id}
+                      onChange={() => setSelectedVolunteerId(volunteer._id)}
+                    />
+                    <span>
+                      {volunteer.fullName} • Rating {volunteer.volunteerRating}/100 • {volunteer.distanceKm} km
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <button
+                  type="button"
+                  className="report-submit"
+                  onClick={handleSendSmsToSelected}
+                  disabled={sendingSms || !selectedVolunteerId}
+                >
+                  {sendingSms ? "Sending SMS..." : "Send SMS to Selected Volunteer"}
+                </button>
+                <button
+                  type="button"
+                  className="dashboard-btn"
+                  onClick={() => setShowSuggestionPopup(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </section>
     </main>
   );
