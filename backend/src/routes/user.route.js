@@ -36,5 +36,3 @@ router.route("/change-password").patch(verifyJWT, changePassword);
 router.route("/add-guardians").post(verifyJWT, addGuardian);
 
 export default router;
-
-export default router;
