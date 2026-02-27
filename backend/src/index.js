@@ -1,106 +1,112 @@
 import dotenv from "dotenv";
 import { connectDB } from "./db/index.js";
 import { app } from "./app.js";
-import path from "path";
-import { fileURLToPath } from "url";
-
 import http from "http";
 import { Server } from "socket.io";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { Incident } from "./models/incident.model.js";
 
 dotenv.config({
   path: "./.env"
 });
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5050;
 
-// 🔥 create HTTP server from express
+// create http server
 const server = http.createServer(app);
 
-// 🔥 attach socket.io
+// socket server
 const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === "production" ? process.env.CORS_ORIGIN_PROD : process.env.CORS_ORIGIN_DEV,
-    credentials: true
-  }
+    credentials: true,
+  },
 });
 
-// store connected users with location
-let users = [];
-// { socketId, lat, lng }
+const users = new Map(); 
 
-// 📏 Haversine distance function (km)
 function getDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371; // earth radius km
+  const R = 6371;
+
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
 
   const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLat / 2) ** 2 +
     Math.cos((lat1 * Math.PI) / 180) *
       Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+      Math.sin(dLon / 2) ** 2;
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
-// 🔌 socket logic
+// socket connection
 io.on("connection", (socket) => {
-  console.log("⚡ User connected:", socket.id);
+  console.log("🟢 Connected:", socket.id);
 
-  // 📍 user sends location after login/dashboard load
+  // store user location
   socket.on("REGISTER_LOCATION", ({ lat, lng }) => {
-    users = users.filter(u => u.socketId !== socket.id);
+    if (!lat || !lng) return;
 
-    users.push({
-      socketId: socket.id,
-      lat,
-      lng
-    });
-
-    console.log("Active users:", users.length);
+    users.set(socket.id, { lat, lng });
+    console.log("📍 Users online:", users.size);
   });
 
-  // 🚨 incident created by any user
-  socket.on("INCIDENT_UPDATE", (incident) => {
-    console.log("🚨 Incident received");
+  // create incident
+  socket.on("INCIDENT_UPDATE", async (data) => {
+    try {
+      const { userId, lat, lng, type, message } = data;
 
-    const radiusKm = Number(incident.radiusMeters || 2000) / 1000;
+      if (!lat || !lng || !type) return;
 
-    users.forEach((user) => {
-      const distance = getDistance(
-        incident.lat,
-        incident.lng,
-        user.lat,
-        user.lng
-      );
+      // severity auto
+      let severity = "low";
+      if (type === "gas_leak" || type === "medical") severity = "high";
+      if (type === "urgent_help") severity = "medium";
 
-      // configurable radius (default 2km)
-      if (distance <= radiusKm) {
-        // Include distance in the emitted data
-        io.to(user.socketId).emit("INCIDENT_NEARBY", {
-          ...incident,
-          distance: distance // distance in km
-        });
+      // save incident
+      const incident = await Incident.create({
+        createdBy: userId,
+        type,
+        message,
+        location: { lat, lng },
+        severity,
+        radius: 2000,
+      });
+
+      const radiusKm = (incident.radius || 2000) / 1000;
+
+      // send only nearby users
+      for (const [socketId, user] of users.entries()) {
+        const distance = getDistance(lat, lng, user.lat, user.lng);
+
+        if (distance <= radiusKm) {
+          io.to(socketId).emit("INCIDENT_NEARBY", {
+            ...incident.toObject(),
+            distance,
+          });
+        }
       }
-    });
+
+    } catch (err) {
+      console.error("❌ Incident error:", err.message);
+    }
   });
 
+  // responder joined
   socket.on("RESPONDER_UPDATE", (payload) => {
     io.emit("INCIDENT_RESPONDER", payload);
   });
 
+  // incident resolved
   socket.on("INCIDENT_RESOLVED", (payload) => {
     io.emit("INCIDENT_CLOSED", payload);
   });
 
+  // disconnect
   socket.on("disconnect", () => {
-    users = users.filter(u => u.socketId !== socket.id);
-    console.log("❌ User disconnected");
+    users.delete(socket.id);
+    console.log("🔴 Disconnected:", socket.id);
   });
 });
 
@@ -108,9 +114,20 @@ io.on("connection", (socket) => {
 connectDB()
   .then(() => {
     server.listen(PORT, () => {
-      console.log(`✅ Server running on port ${PORT}`);
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+    
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use. Please run: lsof -ti:${PORT} | xargs kill -9`);
+        process.exit(1);
+      } else {
+        console.error('❌ Server error:', err);
+        process.exit(1);
+      }
     });
   })
   .catch((err) => {
-    console.log("❌ MongoDB connection error", err);
+    console.error("❌ MongoDB error:", err);
+    process.exit(1);
   });
