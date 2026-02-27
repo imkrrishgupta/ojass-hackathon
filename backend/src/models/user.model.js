@@ -85,6 +85,20 @@ const userSchema = new mongoose.Schema(
       default: "user",
     },
 
+    // OTP verification fields
+    otp: {
+      type: String,
+      default: null,
+    },
+    otpExpiry: {
+      type: Date,
+      default: null,
+    },
+    isPhoneVerified: {
+      type: Boolean,
+      default: false,
+    },
+
     refreshToken: { type: String },
     lastSeen: { type: Date, default: Date.now },
   },

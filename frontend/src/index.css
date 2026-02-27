@@ -242,6 +242,106 @@ a:hover {
 	color: #1d7e43;
 }
 
+/* Phone Input with Country Code */
+.phone-input-wrap {
+	display: flex;
+	align-items: center;
+	border: 2px solid #ab9ae6;
+	border-radius: 10px;
+	overflow: hidden;
+	background: #ffffff;
+	margin-top: 16px;
+}
+
+.country-code {
+	padding: 12px 14px;
+	color: #455768;
+	font-weight: 600;
+	border-right: 1px solid #d5d0e2;
+	background: #f3f0fb;
+	white-space: nowrap;
+}
+
+.phone-input-wrap input {
+	width: 100%;
+	border: 0;
+	outline: none;
+	background: transparent;
+	padding: 12px 14px;
+	font-size: 16px;
+	color: #25303b;
+}
+
+.phone-input-wrap input::placeholder {
+	color: #a8afb7;
+}
+
+/* OTP Input */
+.otp-input-wrap {
+	display: flex;
+	gap: 10px;
+	justify-content: center;
+	margin: 24px 0 16px;
+}
+
+.otp-input {
+	width: 50px;
+	height: 50px;
+	border: 2px solid #ab9ae6;
+	border-radius: 10px;
+	font-size: 24px;
+	font-weight: 600;
+	text-align: center;
+	color: #25303b;
+	background: #ffffff;
+	outline: none;
+	transition: border-color 0.2s ease;
+}
+
+.otp-input:focus {
+	border-color: #9f8ae4;
+	box-shadow: 0 0 0 3px rgba(159, 138, 228, 0.2);
+}
+
+.otp-input::placeholder {
+	color: #d5d0e2;
+}
+
+/* OTP Actions */
+.otp-actions {
+	margin-top: 16px;
+	padding-top: 12px;
+	border-top: 1px solid #e4dfef;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.resend-btn,
+.back-btn {
+	background: transparent;
+	border: 1px solid #c8bfdc;
+	border-radius: 8px;
+	padding: 10px 14px;
+	font-size: 14px;
+	font-weight: 600;
+	color: #455768;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.resend-btn:hover:not(:disabled),
+.back-btn:hover {
+	border-color: #ab9ae6;
+	background: #f3f0fb;
+}
+
+.resend-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+	color: #a8afb7;
+}
+
 .dashboard-page {
 	min-height: 100vh;
 	background: #ece9f4;

@@ -10,6 +10,8 @@ import {
   updateAvatar,
   changePassword,
   addGuardian,
+  sendOTP,
+  verifyOTP,
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
@@ -20,6 +22,8 @@ const router = Router();
 router.post("/api/v1/users/register", upload.single("avatar"), registerUser);
 router.post("/api/v1/users/login", loginUser);
 router.post("/api/v1/users/refresh-token", refreshAccessToken);
+router.post("/api/v1/users/send-otp", sendOTP);
+router.post("/api/v1/users/verify-otp", verifyOTP);
 
 // Protected routes (require JWT)
 router.post("/api/v1/users/logout", verifyJWT, logoutUser);

@@ -283,3 +283,98 @@ export const addGuardian = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, { guardianId: guardian._id }, "Guardian added"));
 });
+
+// ── Send OTP ──────────────────────────────────────────────────────────────────
+// POST /api/v1/users/send-otp
+export const sendOTP = asyncHandler(async (req, res) => {
+  const { phone } = req.body;
+
+  if (!phone) {
+    throw new ApiError(400, "Phone number is required");
+  }
+
+  // Generate a 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+
+  // Find or create user with this phone
+  let user = await User.findOne({ phone });
+
+  if (!user) {
+    // Create a new user with phone (without password initially)
+    // This will be completed during OTP verification
+    user = await User.create({
+      phone,
+      fullName: "New User",
+      email: `user-${Date.now()}@temp.local`, // Temporary email
+      password: "temp_password_123", // Will be changed later
+    });
+  }
+
+  // Store OTP and expiry
+  user.otp = otp;
+  user.otpExpiry = otpExpiry;
+  await user.save({ validateBeforeSave: false });
+
+  // TODO: Send OTP via SMS service (Twilio, AWS SNS, etc.)
+  // For now, we'll log it (only for development)
+  console.log(`OTP for ${phone}: ${otp}`);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { message: "OTP sent successfully" }, "OTP sent"));
+});
+
+// ── Verify OTP ────────────────────────────────────────────────────────────────
+// POST /api/v1/users/verify-otp
+export const verifyOTP = asyncHandler(async (req, res) => {
+  const { phone, otp } = req.body;
+
+  if (!phone || !otp) {
+    throw new ApiError(400, "Phone number and OTP are required");
+  }
+
+  const user = await User.findOne({ phone });
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  // Check if OTP is expired
+  if (!user.otpExpiry || new Date() > user.otpExpiry) {
+    throw new ApiError(400, "OTP has expired. Please request a new one.");
+  }
+
+  // Verify OTP
+  if (user.otp !== otp) {
+    throw new ApiError(400, "Invalid OTP. Please try again.");
+  }
+
+  // Mark as verified and clear OTP
+  user.isPhoneVerified = true;
+  user.otp = null;
+  user.otpExpiry = null;
+  user.lastSeen = new Date();
+  await user.save({ validateBeforeSave: false });
+
+  // Generate tokens
+  const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+    user._id
+  );
+
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken -otp -otpExpiry"
+  );
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, cookieOptions)
+    .cookie("refreshToken", refreshToken, cookieOptions)
+    .json(
+      new ApiResponse(
+        200,
+        { user: loggedInUser, accessToken, refreshToken },
+        "Logged in successfully"
+      )
+    );
+});
