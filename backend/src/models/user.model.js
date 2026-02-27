@@ -49,6 +49,31 @@ const userSchema = new mongoose.Schema(
       default: "user",
     },
 
+    skills: {
+      type: [String],
+      default: [],
+    },
+    volunteerRating: {
+      type: Number,
+      default: 50,
+      min: 0,
+      max: 100,
+    },
+    volunteerAssessment: {
+      type: [
+        {
+          questionId: String,
+          answer: String,
+          score: Number,
+        },
+      ],
+      default: [],
+    },
+    volunteerRatingUpdatedAt: {
+      type: Date,
+      default: null,
+    },
+
     // OTP verification fields
     otp: {
       type: String,

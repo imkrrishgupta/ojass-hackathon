@@ -81,6 +81,20 @@ export default function MapView({ points = [], mapHeight = 320, showRadius = tru
 
   if (!myLocation) return null;
 
+  const normalizedPoints = points
+    .map((item) => {
+      if (Array.isArray(item?.location?.coordinates) && item.location.coordinates.length === 2) {
+        return {
+          ...item,
+          lat: item.location.coordinates[1],
+          lng: item.location.coordinates[0],
+        };
+      }
+
+      return item;
+    })
+    .filter((item) => Number.isFinite(item?.lat) && Number.isFinite(item?.lng));
+
   return (
     <MapContainer
       center={myLocation}
@@ -110,6 +124,10 @@ export default function MapView({ points = [], mapHeight = 320, showRadius = tru
 
       {/* 🚨 Incident markers */}
       {incidents.map((item) => {
+        if (!Number.isFinite(item?.lat) || !Number.isFinite(item?.lng)) {
+          return null;
+        }
+
         const distance = item.distance || getDistance(
           myLocation[0],
           myLocation[1],
@@ -144,6 +162,13 @@ export default function MapView({ points = [], mapHeight = 320, showRadius = tru
           </Marker>
         );
       })}
+
+      {/* 📍 Provided points */}
+      {normalizedPoints.map((item) => (
+        <Marker key={`pt-${item.id || item._id || `${item.lat},${item.lng}`}`} position={[item.lat, item.lng]}>
+          <Popup>{item.label || item.description || item.type || "Location"}</Popup>
+        </Marker>
+      ))}
     </MapContainer>
   );
 }

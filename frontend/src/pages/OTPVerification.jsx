@@ -59,7 +59,7 @@ function OTPVerification({ phone, onSuccess, onBack }) {
 
     setLoading(true);
     try {
-      const response = await axiosInstance.post("/api/v1/users/verify-otp", {
+      const response = await axiosInstance.post("/users/verify-otp", {
         phone: `+91${phone}`,
         otp: otpCode,
       });
@@ -93,7 +93,7 @@ function OTPVerification({ phone, onSuccess, onBack }) {
     setResendTimer(30);
 
     try {
-      await axiosInstance.post("/api/v1/users/send-otp", {
+      await axiosInstance.post("/users/send-otp", {
         phone: `+91${phone}`,
       });
       setOtp(["", "", "", "", "", ""]);

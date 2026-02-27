@@ -1,7 +1,81 @@
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { axiosInstance } from "../api/axios";
+import { emitIncidentUpdate } from "../socket";
 
 function ReportIncident() {
   const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [type, setType] = useState("");
+  const [description, setDescription] = useState("");
+  const [radiusMeters, setRadiusMeters] = useState(2000);
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState({ type: "", message: "" });
+  const [guidance, setGuidance] = useState(null);
+
+  const isFormValid = useMemo(() => name.trim() && type && description.trim(), [name, type, description]);
+
+  const fetchGuidance = async () => {
+    if (!type) return;
+
+    try {
+      const response = await axiosInstance.post("/assistant/crisis-guidance", {
+        type,
+        description,
+      });
+      setGuidance(response.data?.data || null);
+    } catch {
+      setGuidance(null);
+    }
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setStatus({ type: "", message: "" });
+
+    if (!isFormValid) {
+      setStatus({ type: "error", message: "Please fill all required fields." });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const location = await new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => resolve({ lat: 28.6139, lng: 77.209 })
+        );
+      });
+
+      const response = await axiosInstance.post("/incidents", {
+        type,
+        description: `${name.trim()}: ${description.trim()}`,
+        radiusMeters,
+        lat: location.lat,
+        lng: location.lng,
+      });
+
+      const incident = response.data?.data;
+      emitIncidentUpdate({
+        _id: incident?._id,
+        type,
+        title: description.trim().slice(0, 60),
+        lat: location.lat,
+        lng: location.lng,
+        radiusMeters,
+      });
+
+      setStatus({ type: "success", message: "Incident reported successfully." });
+      setTimeout(() => navigate("/user-dashboard"), 900);
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message: error.response?.data?.message || "Failed to report incident.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="report-page">
@@ -15,15 +89,28 @@ function ReportIncident() {
           <p>Share details to alert nearby responders quickly.</p>
         </header>
 
-        <form className="report-form">
+        <form className="report-form" onSubmit={handleSubmit}>
           <label className="report-field">
             <span>Your Name</span>
-            <input className="report-input" type="text" placeholder="Your Name" />
+            <input
+              className="report-input"
+              type="text"
+              placeholder="Your Name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
           </label>
 
           <label className="report-field">
             <span>Select Incident Type</span>
-            <select className="report-input report-select" defaultValue="">
+            <select
+              className="report-input report-select"
+              value={type}
+              onChange={(event) => {
+                setType(event.target.value);
+                setTimeout(fetchGuidance, 0);
+              }}
+            >
               <option value="" disabled>
                 Select Incident Type
               </option>
@@ -36,16 +123,47 @@ function ReportIncident() {
           </label>
 
           <label className="report-field">
+            <span>Broadcast Radius</span>
+            <select
+              className="report-input report-select"
+              value={radiusMeters}
+              onChange={(event) => setRadiusMeters(Number(event.target.value))}
+            >
+              <option value={500}>500 meters</option>
+              <option value={1000}>1 km</option>
+              <option value={2000}>2 km</option>
+            </select>
+          </label>
+
+          <label className="report-field">
             <span>Describe the incident</span>
             <textarea
               className="report-input report-textarea"
               rows={4}
               placeholder="Describe the incident"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              onBlur={fetchGuidance}
             />
           </label>
 
-          <button type="submit" className="report-submit">
-            Submit Report
+          {guidance?.firstResponseSteps?.length ? (
+            <div className="report-field">
+              <span>AI First-Response Guidance</span>
+              <div className="report-input" style={{ lineHeight: 1.6 }}>
+                {guidance.firstResponseSteps.map((step, index) => (
+                  <div key={index}>{`${index + 1}. ${step}`}</div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {status.message ? (
+            <p className={status.type === "success" ? "form-success" : "form-error"}>{status.message}</p>
+          ) : null}
+
+          <button type="submit" className="report-submit" disabled={loading || !isFormValid}>
+            {loading ? "Submitting..." : "Submit Report"}
           </button>
         </form>
       </section>

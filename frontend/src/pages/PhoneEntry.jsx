@@ -25,7 +25,7 @@ function PhoneEntry({ onContinue, onCreateAccount }) {
     setLoading(true);
     try {
       // Request OTP from backend
-      const response = await axiosInstance.post("/api/v1/users/send-otp", {
+      const response = await axiosInstance.post("/users/send-otp", {
         phone: `+91${phone}`, // Add country code
       });
 

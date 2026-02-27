@@ -70,14 +70,9 @@ function App() {
       <Route path="/report-incident" element={<ReportIncident />} />
       <Route
         path="/admin-dashboard"
-        element={
-          isAuthenticated() && isAdminUser() ? (
-            <AdminDashboard onLogout={backToLogin} />
-          ) : (
-            <NotFound />
-          )
-        }
+        element={<AdminDashboard onLogout={backToLogin} />}
       />
+      <Route path="/admin" element={<Navigate to="/admin-dashboard" replace />} />
       <Route path="/userdashboard" element={<Navigate to="/user-dashboard" replace />} />
       <Route path="/admindashboard" element={<Navigate to="/admin-dashboard" replace />} />
       <Route path="/" element={<Navigate to="/login" replace />} />

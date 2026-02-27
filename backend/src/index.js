@@ -1,12 +1,17 @@
 import dotenv from "dotenv";
 import { connectDB } from "./db/index.js";
 import { app } from "./app.js";
+import path from "path";
+import { fileURLToPath } from "url";
 
 import http from "http";
 import { Server } from "socket.io";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 dotenv.config({
-    path: "./.env" 
+  path: path.resolve(__dirname, "../../.env"),
 });
 
 const PORT = process.env.PORT;
@@ -17,7 +22,10 @@ const server = http.createServer(app);
 // 🔥 attach socket.io
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === "production" ? process.env.CORS_ORIGIN_PROD : process.env.CORS_ORIGIN_DEV,
+    origin:
+      process.env.NODE_ENV === "production"
+        ? process.env.CORS_ORIGIN_PROD || process.env.FRONTEND_URL
+        : process.env.CORS_ORIGIN_DEV || process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true
   }
 });
@@ -64,6 +72,8 @@ io.on("connection", (socket) => {
   socket.on("INCIDENT_UPDATE", (incident) => {
     console.log("🚨 Incident received");
 
+    const radiusKm = Number(incident.radiusMeters || 2000) / 1000;
+
     users.forEach((user) => {
       const distance = getDistance(
         incident.lat,
@@ -72,8 +82,8 @@ io.on("connection", (socket) => {
         user.lng
       );
 
-      // 🔥 only within 2km
-      if (distance <= 2) {
+      // configurable radius (default 2km)
+      if (distance <= radiusKm) {
         // Include distance in the emitted data
         io.to(user.socketId).emit("INCIDENT_NEARBY", {
           ...incident,
@@ -81,6 +91,14 @@ io.on("connection", (socket) => {
         });
       }
     });
+  });
+
+  socket.on("RESPONDER_UPDATE", (payload) => {
+    io.emit("INCIDENT_RESPONDER", payload);
+  });
+
+  socket.on("INCIDENT_RESOLVED", (payload) => {
+    io.emit("INCIDENT_CLOSED", payload);
   });
 
   socket.on("disconnect", () => {

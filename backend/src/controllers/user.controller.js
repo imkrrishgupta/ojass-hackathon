@@ -7,6 +7,8 @@ import { OTP } from "../models/otp.model.js";
 import { sendOTPSMS } from "../utils/otpSMS.js";
 import jwt from "jsonwebtoken";
 
+const normalizePhone = (phone) => String(phone ?? "").replace(/\D/g, "").slice(-10);
+
 // ── Helper: generate both tokens and save refresh token to DB ─────────────────
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -38,13 +40,14 @@ const cookieOptions = {
 // ── Register ─────────────────────────────────────────────────────────────────
 // POST /api/v1/users/register
 export const registerUser = asyncHandler(async (req, res) => {
-   const { fullName, phone } = req.body;
+   const { fullName, name, phone } = req.body;
 
-  if (!fullName || !phone) {
+  const normalizedName = (fullName || name || "").trim();
+  const cleanPhone = normalizePhone(phone);
+
+  if (!normalizedName || !cleanPhone) {
     throw new ApiError(400, "Name and phone are required");
   }
-
-  const cleanPhone = phone.replace(/\D/g, "");
 
   if (cleanPhone.length !== 10) {
     throw new ApiError(400, "Phone must be 10 digits");
@@ -75,8 +78,8 @@ export const registerUser = asyncHandler(async (req, res) => {
   }
 
   const user = await User.create({
-    fullName,
-    phone,
+    fullName: normalizedName,
+    phone: cleanPhone,
     avatar: avatar?.url
   });
 
@@ -96,12 +99,13 @@ export const registerUser = asyncHandler(async (req, res) => {
 
 export const loginUser = asyncHandler(async (req, res) => {
   const { phone } = req.body;
+  const cleanPhone = normalizePhone(phone);
 
-  if (!phone) {
+  if (!cleanPhone) {
     throw new ApiError(400, "Phone number required");
   }
 
-  const user = await User.findOne({ phone });
+  const user = await User.findOne({ phone: cleanPhone });
   if (!user) {
     throw new ApiError(404, "User not found");
   }
@@ -119,7 +123,7 @@ export const loginUser = asyncHandler(async (req, res) => {
     expiresAt: Date.now() + 5 * 60 * 1000 // 5 min
   });
 
-  await sendOTPSMS(phone, otp);
+  await sendOTPSMS(cleanPhone, otp);
 
   return res.status(200)
   .cookie("accessToken", accessToken, cookieOptions)
@@ -308,8 +312,9 @@ export const addGuardian = asyncHandler(async (req, res) => {
 // POST /api/v1/users/send-otp
 export const sendOTP = asyncHandler(async (req, res) => {
   const { phone } = req.body;
+  const cleanPhone = normalizePhone(phone);
 
-  if (!phone) {
+  if (!cleanPhone || cleanPhone.length !== 10) {
     throw new ApiError(400, "Phone number is required");
   }
 
@@ -318,13 +323,13 @@ export const sendOTP = asyncHandler(async (req, res) => {
   const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
   // Find or create user with this phone
-  let user = await User.findOne({ phone });
+  let user = await User.findOne({ phone: cleanPhone });
 
   if (!user) {
     // Create a new user with phone (without password initially)
     // This will be completed during OTP verification
     user = await User.create({
-      phone,
+      phone: cleanPhone,
       fullName: "New User",
       password: Math.random().toString(36).slice(-8), // Temporary random password
     });
@@ -337,7 +342,7 @@ export const sendOTP = asyncHandler(async (req, res) => {
 
   // TODO: Send OTP via SMS service (Twilio, AWS SNS, etc.)
   // For now, we'll log it (only for development)
-  console.log(`OTP for ${phone}: ${otp}`);
+  console.log(`OTP for ${cleanPhone}: ${otp}`);
 
   return res
     .status(200)
@@ -348,12 +353,13 @@ export const sendOTP = asyncHandler(async (req, res) => {
 // POST /api/v1/users/verify-otp
 export const verifyOTP = asyncHandler(async (req, res) => {
   const { phone, otp } = req.body;
+  const cleanPhone = normalizePhone(phone);
 
-  if (!phone || !otp) {
+  if (!cleanPhone || !otp) {
     throw new ApiError(400, "Phone number and OTP are required");
   }
 
-  const user = await User.findOne({ phone });
+  const user = await User.findOne({ phone: cleanPhone });
 
   if (!user) {
     throw new ApiError(404, "User not found");

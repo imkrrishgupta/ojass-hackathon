@@ -20,6 +20,15 @@ export const sendOTPSMS = async (phone, otp) => {
 		const fastSmsApiKey = process.env.FAST2SMS_API_KEY;
 
 		if (!fastSmsApiKey) {
+			if (process.env.NODE_ENV !== "production") {
+				console.log(`[DEV OTP] ${cleanPhone}: ${otp}`);
+				return {
+					success: true,
+					message: "OTP logged in development mode",
+					data: { devMode: true },
+				};
+			}
+
 			throw new ApiError(
 				500,
 				"Fast2SMS API key is not configured in environment variables"
