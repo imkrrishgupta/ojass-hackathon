@@ -4,18 +4,41 @@ import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import UserDashboard from "./pages/UserDashboard";
 
+const ADMIN_PHONE = "9625113505";
+
+const getStoredUser = () => {
+  try {
+    const rawUser = localStorage.getItem("user");
+    return rawUser ? JSON.parse(rawUser) : null;
+  } catch {
+    return null;
+  }
+};
+
+const normalizePhone = (phone) => String(phone ?? "").replace(/\D/g, "").slice(-10);
+
+const isAuthenticated = () => Boolean(localStorage.getItem("accessToken"));
+
+const isAdminUser = () => {
+  const user = getStoredUser();
+  return normalizePhone(user?.phone) === ADMIN_PHONE;
+};
+
 function App() {
   const navigate = useNavigate();
 
-  const openUserDashboard = () => {
+  const handleAuthSuccess = (userType) => {
+    if (userType === "admin") {
+      navigate("/admin-dashboard");
+      return;
+    }
     navigate("/user-dashboard");
   };
 
-  const openAdminDashboard = () => {
-    navigate("/admin-dashboard");
-  };
-
   const backToLogin = () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
     navigate("/login");
   };
 
@@ -23,10 +46,30 @@ function App() {
     <Routes>
       <Route
         path="/login"
-        element={<Login onUserLoginSuccess={openUserDashboard} onAdminLogin={openAdminDashboard} />}
+        element={
+          isAuthenticated() ? (
+            isAdminUser() ? <Navigate to="/admin-dashboard" replace /> : <Navigate to="/user-dashboard" replace />
+          ) : (
+            <Login onAuthSuccess={handleAuthSuccess} />
+          )
+        }
       />
-      <Route path="/user-dashboard" element={<UserDashboard onLogout={backToLogin} />} />
-      <Route path="/admin-dashboard" element={<AdminDashboard onLogout={backToLogin} />} />
+      <Route
+        path="/user-dashboard"
+        element={<UserDashboard onLogout={backToLogin} />}
+      />
+      <Route
+        path="/admin-dashboard"
+        element={
+          isAuthenticated() && isAdminUser() ? (
+            <AdminDashboard onLogout={backToLogin} />
+          ) : (
+            <NotFound />
+          )
+        }
+      />
+      <Route path="/userdashboard" element={<Navigate to="/user-dashboard" replace />} />
+      <Route path="/admindashboard" element={<Navigate to="/admin-dashboard" replace />} />
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
