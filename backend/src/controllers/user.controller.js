@@ -3,6 +3,8 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
+import { OTP } from "../models/otp.model.js";
+import { sendOTPSMS } from "../utils/otpSMS.js";
 import jwt from "jsonwebtoken";
 
 // ── Helper: generate both tokens and save refresh token to DB ─────────────────
@@ -36,78 +38,103 @@ const cookieOptions = {
 // ── Register ─────────────────────────────────────────────────────────────────
 // POST /api/v1/users/register
 export const registerUser = asyncHandler(async (req, res) => {
-  const { fullName, password, phone, skills } = req.body;
+   const { name, phone } = req.body;
 
-  if ([fullName, password].some((f) => !f?.trim())) {
-    throw new ApiError(400, "fullName and password are required");
+  if (!name || !phone) {
+    throw new ApiError(400, "Name and phone are required");
   }
 
-  const existing = await User.findOne({ phone });
-  if (existing) throw new ApiError(409, "Phone number already registered");
+  const cleanPhone = phone.replace(/\D/g, "");
 
-  // Handle optional avatar upload
-  let avatarUrl = "";
-  if (req.file) {
-    const uploaded = await uploadOnCloudinary(req.file.path);
-    if (uploaded) {
-      avatarUrl = uploaded.secure_url;
+  if (cleanPhone.length !== 10) {
+    throw new ApiError(400, "Phone must be 10 digits");
+  }
+
+  const existingUser = await User.findOne({ phone: cleanPhone });
+
+  if (existingUser) {
+    throw new ApiError(409, "User already registered with this phone");
+  }
+
+  const avatarLocalPath = req.file;
+
+  let avatar = null;
+
+  if (avatarLocalPath){
+    try {
+      avatar = await uploadOnCloudinary(avatarLocalPath.path);
+            
+      if (process.env.NODE_ENV !== "production"){
+        console.log("Uploaded avatar", avatar.public_id);
+      }
+            
+    } catch (error) {
+        console.log("Error uploading avatar", error);
+        throw new ApiError(500, "Failed to upload avatar");
     }
   }
 
   const user = await User.create({
-    fullName,
-    password,
-    phone: phone || "",
-    skills: skills ? (Array.isArray(skills) ? skills : JSON.parse(skills)) : [],
-    avatar: avatarUrl,
+    name,
+    phone,
+    role,
+    avatar: avatar?.url
   });
 
-  const created = await User.findById(user._id).select("-password -refreshToken");
+  if (!user){
+    throw new ApiError(500, "Failed to create user");
+  }
+
+  const createdUser = await User.findById(user._id).select(
+    "-refreshToken -location"
+  )
 
   return res
     .status(201)
-    .json(new ApiResponse(201, created, "User registered successfully"));
+    .json(new ApiResponse(201, createdUser, "User registered successfully"));
+    
 });
 
-// ── Login ────────────────────────────────────────────────────────────────────
-// POST /api/v1/users/login
 export const loginUser = asyncHandler(async (req, res) => {
-  const { phone, password } = req.body;
+  const { phone } = req.body;
 
-  if (!phone || !password) {
-    throw new ApiError(400, "Phone number and password are required");
+  if (!phone) {
+    throw new ApiError(400, "Phone number required");
   }
 
   const user = await User.findOne({ phone });
-  if (!user) throw new ApiError(404, "User not found");
-
-  const isValid = await user.isPasswordCorrect(password);
-  if (!isValid) throw new ApiError(401, "Invalid credentials");
-
-  if (user.isSuspended) {
-    throw new ApiError(403, `Account suspended: ${user.suspendReason}`);
+  if (!user) {
+    throw new ApiError(404, "User not found");
   }
-
-  user.lastSeen = new Date();
-  await user.save({ validateBeforeSave: false });
 
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
 
-  const loggedInUser = await User.findById(user._id).select(
-    "-password -refreshToken"
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  await OTP.deleteMany({ userId: user._id });
+
+  await OTP.create({
+    userId: user._id,
+    otp: otp,
+    attempts: 0,
+    expiresAt: Date.now() + 5 * 60 * 1000 // 5 min
+  });
+
+  await sendOTPSMS(phone, otp);
+
+  const loggedInUser = await User.findById(user._id).select("-refreshToken location");
+
+  return res.status(200)
+  .cookie("accessToken", accessToken, cookieOptions)
+  .cookie("refreshToken", refreshToken, cookieOptions)
+  .json(
+    new ApiResponse(
+      200,
+      loggedInUser,
+      "User logged in successfully"
+    )
   );
 
-  return res
-    .status(200)
-    .cookie("accessToken", accessToken, cookieOptions)
-    .cookie("refreshToken", refreshToken, cookieOptions)
-    .json(
-      new ApiResponse(
-        200,
-        { user: loggedInUser, accessToken, refreshToken },
-        "Logged in successfully"
-      )
-    );
 });
 
 // ── Logout ───────────────────────────────────────────────────────────────────
