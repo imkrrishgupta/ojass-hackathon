@@ -1,1 +1,291 @@
 @import "tailwindcss";
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+	background: #ece9f4;
+	color: #1d2630;
+}
+
+a {
+	color: #2f65d4;
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+.auth-page {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+}
+
+.auth-topbar {
+	background: #ffffff;
+	border-bottom: 1px solid #ddd8e9;
+	padding: 8px 18px;
+}
+
+.auth-topbar-inner {
+	max-width: 1100px;
+	margin: 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 12px;
+}
+
+.auth-logo-wrap {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.auth-logo {
+	display: block;
+	height: 38px;
+	width: auto;
+}
+
+.auth-brand {
+	margin: 0;
+	color: #5a36d6;
+	font-size: 46px;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.auth-tagline {
+	margin: 2px 0 0;
+	color: #68788b;
+	font-size: 15px;
+}
+
+.auth-body {
+	flex: 1;
+	padding: 28px 16px 24px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+}
+
+.auth-card {
+	width: min(520px, 100%);
+	background: #f8f9fc;
+	border: 1px solid #d5d0e2;
+	border-radius: 14px;
+	padding: 28px;
+	box-shadow: 0 5px 18px rgba(20, 28, 45, 0.07);
+	position: relative;
+}
+
+.auth-card::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	border-radius: 14px 14px 0 0;
+	background: #b8a9e9;
+}
+
+.auth-card h2 {
+	margin: 0;
+	font-size: 32px;
+	font-weight: 700;
+	letter-spacing: 0.1px;
+}
+
+.subtitle {
+	margin: 8px 0 18px;
+	color: #55697c;
+	font-size: 16px;
+}
+
+.phone-input-wrap {
+	display: flex;
+	align-items: center;
+	border: 2px solid #ab9ae6;
+	border-radius: 10px;
+	overflow: hidden;
+	background: #ffffff;
+}
+
+.phone-input-wrap input {
+	width: 100%;
+	border: 0;
+	outline: none;
+	background: transparent;
+	padding: 12px 14px;
+	font-size: 16px;
+	color: #25303b;
+}
+
+.phone-input-wrap input::placeholder {
+	color: #a8afb7;
+}
+
+.primary-btn {
+	margin-top: 16px;
+	width: 100%;
+	border: 0;
+	border-radius: 10px;
+	background: #b8a9e9;
+	color: #ffffff;
+	font-size: 16px;
+	font-weight: 600;
+	padding: 11px 16px;
+	cursor: pointer;
+	transition: background-color 0.15s ease;
+}
+
+.primary-btn:hover:not(:disabled) {
+	background: #a895e2;
+}
+
+.primary-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.terms-text {
+	margin-top: 12px;
+	color: #405366;
+	font-size: 13px;
+}
+
+.input-label {
+	display: block;
+	margin-top: 10px;
+	margin-bottom: 6px;
+	font-size: 14px;
+	font-weight: 600;
+	color: #455768;
+}
+
+.text-input {
+	width: 100%;
+	border: 1.5px solid #c8bfdc;
+	border-radius: 10px;
+	outline: none;
+	padding: 11px 14px;
+	font-size: 15px;
+	background: #ffffff;
+}
+
+.text-input:focus,
+.phone-input-wrap:focus-within,
+.text-input:focus-visible {
+	border-color: #9f8ae4;
+	box-shadow: 0 0 0 3px rgba(159, 138, 228, 0.2);
+}
+
+.link-btn {
+	margin-top: 10px;
+	background: transparent;
+	border: 0;
+	color: #2f65d4;
+	font-size: 14px;
+	cursor: pointer;
+	text-decoration: underline;
+	padding: 0;
+	text-align: left;
+}
+
+.auth-secondary-actions {
+	margin-top: 16px;
+	padding-top: 10px;
+	border-top: 1px solid #e4dfef;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.auth-secondary-actions .link-btn {
+	margin-top: 0;
+}
+
+.form-error,
+.form-success {
+	font-size: 13px;
+	margin: 10px 0 0;
+}
+
+.form-error {
+	color: #c12929;
+}
+
+.form-success {
+	color: #1d7e43;
+}
+
+@media (max-width: 900px) {
+	.auth-topbar {
+		padding: 10px 14px;
+	}
+
+	.auth-topbar-inner {
+		align-items: center;
+	}
+
+	.auth-brand {
+		font-size: 30px;
+	}
+
+	.auth-logo {
+		height: 32px;
+	}
+
+	.auth-tagline {
+		font-size: 12px;
+	}
+
+	.auth-card {
+		padding: 22px 16px;
+	}
+
+	.auth-card h2 {
+		font-size: 24px;
+	}
+
+	.subtitle {
+		font-size: 14px;
+	}
+
+	.phone-input-wrap input {
+		font-size: 15px;
+		padding: 10px 12px;
+	}
+
+	.primary-btn {
+		font-size: 15px;
+		margin-top: 14px;
+		padding: 10px 12px;
+	}
+
+	.terms-text {
+		font-size: 12px;
+	}
+
+	.input-label,
+	.text-input,
+	.link-btn,
+	.form-error,
+	.form-success {
+		font-size: 13px;
+	}
+
+	.auth-secondary-actions {
+		margin-top: 14px;
+		padding-top: 8px;
+		gap: 8px;
+	}
+}
