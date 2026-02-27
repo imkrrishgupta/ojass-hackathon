@@ -55,7 +55,7 @@ io.on("connection", (socket) => {
   // create incident
   socket.on("INCIDENT_UPDATE", async (data) => {
     try {
-      const { userId, lat, lng, type, message } = data;
+      const { userId, lat, lng, type, description } = data;
 
       if (!lat || !lng || !type) return;
 
@@ -68,17 +68,22 @@ io.on("connection", (socket) => {
       const incident = await Incident.create({
         createdBy: userId,
         type,
-        message,
-        location: { lat, lng },
+        description: description || "",
+        location: {
+          type: "Point",
+          coordinates: [Number(lng), Number(lat)],
+        },
         severity,
-        radius: 2000,
+        radiusMeters: 2000,
+        status: "open",
       });
 
-      const radiusKm = (incident.radius || 2000) / 1000;
+      const radiusKm = (incident.radiusMeters || 2000) / 1000;
 
       // send only nearby users
       for (const [socketId, user] of users.entries()) {
-        const distance = getDistance(lat, lng, user.lat, user.lng);
+        const [incidentLng, incidentLat] = incident.location.coordinates;
+        const distance = getDistance(incidentLat, incidentLng, user.lat, user.lng);
 
         if (distance <= radiusKm) {
           io.to(socketId).emit("INCIDENT_NEARBY", {

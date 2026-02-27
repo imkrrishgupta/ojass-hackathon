@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MapView from "../components/MapView";
-import { Activity, Clock3, MapPin, ShieldAlert, SlidersHorizontal } from "lucide-react";
+import { Activity, Clock3, MapPin, ShieldAlert, SlidersHorizontal, AlertCircle } from "lucide-react";
 import { axiosInstance } from "../api/axios.js";
 
 const userPoints = [
@@ -248,7 +248,7 @@ function UserDashboard({ onLogout }) {
             <div className="panel-divider" />
 
             <p className="panel-caption">AI Volunteer Rating</p>
-            <div className="report-field" style={{ marginTop: 10 }}>
+            <div className="report-field mt-2.5">
               <select
                 className="report-input report-select"
                 value={assessmentType}
@@ -267,8 +267,8 @@ function UserDashboard({ onLogout }) {
             </div>
 
             {assessmentQuestions.map((item) => (
-              <div className="report-field" key={item.id} style={{ marginTop: 8 }}>
-                <span style={{ fontSize: 12 }}>{item.question}</span>
+              <div className="report-field mt-2" key={item.id}>
+                <span className="text-xs">{item.question}</span>
                 <select
                   className="report-input report-select"
                   value={assessmentAnswers[item.id] || "basic"}
@@ -290,8 +290,7 @@ function UserDashboard({ onLogout }) {
 
             <button
               type="button"
-              className="dashboard-btn"
-              style={{ marginTop: 10 }}
+              className="dashboard-btn mt-2.5"
               onClick={submitAssessment}
               disabled={assessmentLoading || !assessmentQuestions.length}
             >
@@ -299,13 +298,13 @@ function UserDashboard({ onLogout }) {
             </button>
 
             {assessmentStatus ? (
-              <p className="panel-caption" style={{ marginTop: 8 }}>
+              <p className="panel-caption mt-2">
                 {assessmentStatus}
               </p>
             ) : null}
 
             {assessmentResult?.rating !== undefined ? (
-              <p className="panel-caption" style={{ marginTop: 10 }}>
+              <p className="panel-caption mt-2.5">
                 Your volunteer rating: {assessmentResult.rating}/100 (Grade {assessmentResult.grade})
               </p>
             ) : null}
@@ -316,7 +315,7 @@ function UserDashboard({ onLogout }) {
             <p className="panel-caption">Auto-updating incidents and responders</p>
 
             {latestIncidentSuggestion?.suggestedVolunteers?.length ? (
-              <div className="responder-chat-placeholder" style={{ marginTop: 10 }}>
+              <div className="responder-chat-placeholder mt-2.5">
                 <p className="responder-chat-title">LLM Suggested Volunteers (Latest Incident)</p>
                 {latestIncidentSuggestion.suggestedVolunteers.map((item) => (
                   <p className="responder-chat-line" key={item._id}>
@@ -345,7 +344,7 @@ function UserDashboard({ onLogout }) {
                     <p className="update-title">{incident.type?.toUpperCase()} Alert</p>
                     <p className="update-text">{incident.description || "No additional details"}</p>
                     <span className="update-time">Responders: {incident.responders?.length || 0}</span>
-                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                    <div className="flex gap-2 mt-2.5">
                       <button
                         type="button"
                         className="dashboard-btn"
@@ -406,6 +405,17 @@ function UserDashboard({ onLogout }) {
           </aside>
         </section>
       </section>
+
+      {/* Floating Action Button */}
+      <button
+        type="button"
+        className="fixed bottom-8 right-8 w-16 h-16 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 z-40"
+        onClick={() => navigate("/report-incident")}
+        title="Report an incident"
+        aria-label="Report incident"
+      >
+        <AlertCircle size={24} />
+      </button>
     </main>
   );
 }

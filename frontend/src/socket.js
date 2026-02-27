@@ -44,14 +44,18 @@ export const registerLocation = ({ lat, lng }) => {
 export const emitIncidentUpdate = (incidentData) => {
   const user = getStoredUser();
   const userId = user?._id;
+  const parsedLat = Number(incidentData?.lat);
+  const parsedLng = Number(incidentData?.lng);
+  const type = incidentData?.type;
+  const description = incidentData?.description || incidentData?.title || "";
 
-  if (!userId) return;
+  if (!userId || !Number.isFinite(parsedLat) || !Number.isFinite(parsedLng) || !type) return;
 
   socket.emit("INCIDENT_UPDATE", {
     userId,
-    lat: incidentData.lat,
-    lng: incidentData.lng,
-    type: incidentData.type,
-    description: incidentData.description || incidentData.title || "",
+    type,
+    description,
+    lat: parsedLat,
+    lng: parsedLng,
   });
 };

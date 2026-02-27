@@ -7,33 +7,91 @@ const incidentSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    reporterName: {
+      type: String,
+      trim: true,
+      default: "User",
+    },
+    reporterPhone: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     type: {
       type: String,
       enum: ["car_breakdown", "gas_leak", "urgent_help", "medical", "others"],
       required: true,
     },
-    message: {
+    description: {
       type: String,
       trim: true,
       default: "",
     },
     location: {
-      lat: {
-        type: Number,
-        required: true,
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
       },
-      lng: {
-        type: Number,
+      coordinates: {
+        type: [Number],
         required: true,
       },
     },
-    radius: {
+    radiusMeters: {
       type: Number,
       default: 2000, // meters (2km)
     },
-    active: {
-      type: Boolean,
-      default: true,
+    status: {
+      type: String,
+      enum: ["open", "resolved"],
+      default: "open",
+    },
+    responders: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        fullName: {
+          type: String,
+          default: "Responder",
+        },
+        phone: {
+          type: String,
+          default: "",
+        },
+        joinedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    suggestedVolunteers: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        fullName: {
+          type: String,
+          default: "",
+        },
+        phone: {
+          type: String,
+          default: "",
+        },
+      },
+    ],
+    notifiedSuggestedVolunteerIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    suggestedVolunteerNotifiedAt: {
+      type: Date,
+      default: null,
     },
     resolvedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -52,5 +110,7 @@ const incidentSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+incidentSchema.index({ location: "2dsphere" });
 
 export const Incident = mongoose.model("Incident", incidentSchema);

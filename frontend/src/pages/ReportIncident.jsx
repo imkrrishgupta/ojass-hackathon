@@ -3,9 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { axiosInstance } from "../api/axios";
 import { emitIncidentUpdate } from "../socket";
 
+const getStoredUser = () => {
+  try {
+    const raw = localStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
 function ReportIncident() {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
   const [type, setType] = useState("");
   const [description, setDescription] = useState("");
   const [radiusMeters, setRadiusMeters] = useState(2000);
@@ -17,7 +25,7 @@ function ReportIncident() {
   const [selectedVolunteerId, setSelectedVolunteerId] = useState("");
   const [sendingSms, setSendingSms] = useState(false);
 
-  const isFormValid = useMemo(() => name.trim() && type && description.trim(), [name, type, description]);
+  const isFormValid = useMemo(() => type && description.trim(), [type, description]);
 
   const fetchGuidance = async () => {
     if (!type) return;
@@ -53,7 +61,7 @@ function ReportIncident() {
 
       const response = await axiosInstance.post("/incidents", {
         type,
-        description: `${name.trim()}: ${description.trim()}`,
+        description: description.trim(),
         radiusMeters,
         lat: location.lat,
         lng: location.lng,
@@ -88,7 +96,7 @@ function ReportIncident() {
       emitIncidentUpdate({
         _id: incident?._id,
         type,
-        title: description.trim().slice(0, 60),
+        description: description.trim(),
         lat: location.lat,
         lng: location.lng,
         radiusMeters,
@@ -155,17 +163,6 @@ function ReportIncident() {
 
         <form className="report-form" onSubmit={handleSubmit}>
           <label className="report-field">
-            <span>Your Name</span>
-            <input
-              className="report-input"
-              type="text"
-              placeholder="Your Name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </label>
-
-          <label className="report-field">
             <span>Select Incident Type</span>
             <select
               className="report-input report-select"
@@ -178,11 +175,11 @@ function ReportIncident() {
               <option value="" disabled>
                 Select Incident Type
               </option>
-              <option value="fire">Fire Accident</option>
-              <option value="road">Road Accident</option>
-              <option value="theft">Theft</option>
-              <option value="health">Health Issue</option>
-              <option value="other">Other</option>
+              <option value="car_breakdown">Car Breakdown</option>
+              <option value="gas_leak">Gas Leak</option>
+              <option value="urgent_help">Urgent Help</option>
+              <option value="medical">Medical</option>
+              <option value="others">Other</option>
             </select>
           </label>
 
