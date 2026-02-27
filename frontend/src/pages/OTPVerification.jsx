@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { axiosInstance } from "../api/axios.js";
 
+const ADMIN_PHONE = "9625113505";
+const normalizePhone = (value) => String(value ?? "").replace(/\D/g, "").slice(-10);
+
 function OTPVerification({ phone, onSuccess, onBack }) {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
@@ -64,16 +67,18 @@ function OTPVerification({ phone, onSuccess, onBack }) {
       if (response.status === 200) {
         // Store tokens and user info
         const { accessToken, refreshToken, user } = response.data.data;
+        const isAdmin = normalizePhone(phone) === ADMIN_PHONE;
+        const normalizedUser = {
+          ...user,
+          role: isAdmin ? "admin" : "user",
+          phone: user?.phone ?? `+91${phone}`,
+        };
+
         localStorage.setItem("accessToken", accessToken);
         localStorage.setItem("refreshToken", refreshToken);
-        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("user", JSON.stringify(normalizedUser));
 
-        // Check if user is admin
-        if (user.role === "admin") {
-          onSuccess("admin");
-        } else {
-          onSuccess("user");
-        }
+        onSuccess(isAdmin ? "admin" : "user");
       }
     } catch (err) {
       setError(err.response?.data?.message || "Invalid OTP. Please try again.");

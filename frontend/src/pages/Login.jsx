@@ -3,7 +3,7 @@ import PhoneEntry from "./PhoneEntry";
 import OTPVerification from "./OTPVerification";
 import nearhelpLogo from "../assets/nearhelp-logo.svg";
 
-function Login({ onUserLoginSuccess, onAdminLogin }) {
+function Login({ onAuthSuccess }) {
 	const [step, setStep] = useState("phone"); // phone or otp
 	const [phone, setPhone] = useState("");
 
@@ -13,11 +13,7 @@ function Login({ onUserLoginSuccess, onAdminLogin }) {
 	};
 
 	const handleOTPSuccess = (userType) => {
-		if (userType === "admin") {
-			onAdminLogin();
-		} else {
-			onUserLoginSuccess();
-		}
+		onAuthSuccess(userType);
 	};
 
 	const handleBackToPhone = () => {
@@ -32,9 +28,6 @@ function Login({ onUserLoginSuccess, onAdminLogin }) {
 					<div className="auth-logo-wrap">
 						<img className="auth-logo" src={nearhelpLogo} alt="NearHelp" />
 					</div>
-					<button type="button" className="admin-login-btn" onClick={onAdminLogin}>
-						Admin Login
-					</button>
 				</div>
 			</header>
 
