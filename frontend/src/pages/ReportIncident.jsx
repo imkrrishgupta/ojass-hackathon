@@ -240,11 +240,11 @@ function ReportIncident() {
                   }}
                 >
                   <option value="" disabled>Select incident type</option>
-                  <option value="car_breakdown">Car Breakdown</option>
-                  <option value="gas_leak">Gas Leak</option>
-                  <option value="urgent_help">Urgent Help</option>
-                  <option value="medical">Medical</option>
-                  <option value="others">Other</option>
+                  <option value="Health">Health</option>
+                  <option value="Road">Road</option>
+                  <option value="Fire">Fire</option>
+                  <option value="Theft">Theft</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
 
