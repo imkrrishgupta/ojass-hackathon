@@ -62,7 +62,8 @@ function SkillRegistry() {
     try {
       const res = await axiosInstance.put("/skills/my", { skills: mySkills });
       setMySkills(res.data?.data?.skills || mySkills);
-      setStatus("Skills saved successfully!");
+      setStatus("Skills saved successfully! Redirecting to dashboard...");
+      setTimeout(() => navigate("/user-dashboard"), 2000);
     } catch (err) {
       setStatus(err.response?.data?.message || "Failed to save skills.");
     } finally {
