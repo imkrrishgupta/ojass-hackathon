@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { axiosInstance } from "../api/axios";
-import { emitIncidentUpdate } from "../socket";
 import { ShieldAlert, AlertCircle, Send, ArrowLeft, CheckCircle2, MapPin, Radio, FileText, Users } from "lucide-react";
 
 const getStoredUser = () => {
@@ -100,15 +99,6 @@ function ReportIncident() {
           createdAt: Date.now(),
         })
       );
-
-      emitIncidentUpdate({
-        _id: incident?._id,
-        type,
-        description: description.trim(),
-        lat: location.lat,
-        lng: location.lng,
-        radiusMeters,
-      });
 
       const namesText = suggestedList.length
         ? ` Suggested: ${suggestedList.map((item) => item.fullName).join(", ")}.`

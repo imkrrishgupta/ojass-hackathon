@@ -1,25 +1,42 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import MapView from "../components/MapView";
 import { Activity, Clock3, MapPin, ShieldAlert, SlidersHorizontal, AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
 import { axiosInstance } from "../api/axios.js";
+import { socket } from "../socket.js";
 
 function AdminDashboard({ onLogout }) {
   const [summary, setSummary] = useState({ openCount: 0, resolvedCount: 0, incidents: [] });
 
-  useEffect(() => {
-    const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
       try {
         const response = await axiosInstance.get("/incidents/admin-summary");
         setSummary(response.data?.data || { openCount: 0, resolvedCount: 0, incidents: [] });
       } catch {
         setSummary({ openCount: 0, resolvedCount: 0, incidents: [] });
       }
-    };
+    }, []);
 
+  useEffect(() => {
     fetchSummary();
     const timer = setInterval(fetchSummary, 10000);
     return () => clearInterval(timer);
-  }, []);
+  }, [fetchSummary]);
+
+  /* ── Real-time socket listeners ── */
+  useEffect(() => {
+    const onUpdate = () => fetchSummary();
+    const onClosed = () => fetchSummary();
+
+    socket.on("INCIDENT_UPDATED", onUpdate);
+    socket.on("INCIDENT_CLOSED", onClosed);
+    socket.on("INCIDENT_RESPONDER", onUpdate);
+
+    return () => {
+      socket.off("INCIDENT_UPDATED", onUpdate);
+      socket.off("INCIDENT_CLOSED", onClosed);
+      socket.off("INCIDENT_RESPONDER", onUpdate);
+    };
+  }, [fetchSummary]);
 
   const activeResponders = useMemo(
     () => summary.incidents.reduce((total, incident) => total + (incident.responders?.length || 0), 0),

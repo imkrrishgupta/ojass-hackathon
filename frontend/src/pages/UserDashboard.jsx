@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import MapView from "../components/MapView";
 import { Activity, Clock3, ShieldAlert, AlertCircle } from "lucide-react";
 import { axiosInstance } from "../api/axios.js";
+import { socket } from "../socket.js";
 
 function UserDashboard({ onLogout }) {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ function UserDashboard({ onLogout }) {
   const [bestVolunteerByIncident, setBestVolunteerByIncident] = useState({});
   const [latestIncidentSuggestion, setLatestIncidentSuggestion] = useState(null);
   const [activeFilters, setActiveFilters] = useState([]);
+  const [lastSyncTime, setLastSyncTime] = useState(null);
 
   const FILTER_TYPES = [
     { label: "Accident", type: "accident" },
@@ -33,20 +35,83 @@ function UserDashboard({ onLogout }) {
     );
   };
 
-  const fetchOpenIncidents = async () => {
+  const fetchOpenIncidents = useCallback(async () => {
     try {
       const response = await axiosInstance.get("/incidents/open");
       setIncidents(response.data?.data || []);
+      setLastSyncTime(new Date());
     } catch {
       setIncidents([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchOpenIncidents();
     const timer = setInterval(fetchOpenIncidents, 10000);
     return () => clearInterval(timer);
-  }, []);
+  }, [fetchOpenIncidents]);
+
+  /* ── Real-time socket listeners ── */
+  useEffect(() => {
+    // An incident was created, responded to, or modified
+    const onIncidentUpdated = (updatedIncident) => {
+      if (!updatedIncident) return;
+      const id = updatedIncident._id || updatedIncident.id;
+      if (!id) return;
+
+      setLastSyncTime(new Date());
+      setIncidents((prev) => {
+        // If resolved, remove it from the open list
+        if (updatedIncident.status === "resolved") {
+          return prev.filter((inc) => (inc._id || inc.id) !== id);
+        }
+        // If it already exists, replace it; otherwise prepend it
+        const exists = prev.some((inc) => (inc._id || inc.id) === id);
+        if (exists) {
+          return prev.map((inc) => (inc._id || inc.id) === id ? updatedIncident : inc);
+        }
+        return [updatedIncident, ...prev];
+      });
+    };
+
+    // An incident was resolved/closed
+    const onIncidentClosed = (payload) => {
+      const id = payload?.incidentId || payload?._id || payload?.id;
+      if (!id) return;
+      setIncidents((prev) => prev.filter((inc) => (inc._id || inc.id) !== id));
+    };
+
+    // A new nearby incident arrived
+    const onIncidentNearby = (inc) => {
+      if (!inc) return;
+      const id = inc._id || inc.id;
+      if (!id) return;
+      setIncidents((prev) => {
+        const exists = prev.some((i) => (i._id || i.id) === id);
+        if (exists) return prev.map((i) => (i._id || i.id) === id ? { ...i, ...inc } : i);
+        return [inc, ...prev];
+      });
+    };
+
+    // A responder joined an incident
+    const onIncidentResponder = (payload) => {
+      if (!payload?.incidentId) return;
+      // Re-fetch to get fully populated data
+      fetchOpenIncidents();
+    };
+
+    socket.on("INCIDENT_UPDATED", onIncidentUpdated);
+    socket.on("INCIDENT_CLOSED", onIncidentClosed);
+    socket.on("INCIDENT_NEARBY", onIncidentNearby);
+    socket.on("INCIDENT_RESPONDER", onIncidentResponder);
+
+    return () => {
+      socket.off("INCIDENT_UPDATED", onIncidentUpdated);
+      socket.off("INCIDENT_CLOSED", onIncidentClosed);
+      socket.off("INCIDENT_NEARBY", onIncidentNearby);
+      socket.off("INCIDENT_RESPONDER", onIncidentResponder);
+    };
+  }, [fetchOpenIncidents]);
 
   const fetchAssessmentQuestions = async (type = assessmentType) => {
     setAssessmentLoading(true);
@@ -93,9 +158,15 @@ function UserDashboard({ onLogout }) {
   const handleRespond = async (incidentId) => {
     setLoadingId(incidentId);
     try {
-      await axiosInstance.post(`/incidents/${incidentId}/respond`);
+      const res = await axiosInstance.post(`/incidents/${incidentId}/respond`);
       setActiveChatIncident(incidentId);
-      await fetchOpenIncidents();
+      // Update local state immediately with the response data
+      const updated = res.data?.data;
+      if (updated) {
+        setIncidents((prev) =>
+          prev.map((inc) => (inc._id || inc.id) === incidentId ? updated : inc)
+        );
+      }
     } catch {
     } finally {
       setLoadingId("");
@@ -106,7 +177,8 @@ function UserDashboard({ onLogout }) {
     setLoadingId(incidentId);
     try {
       await axiosInstance.post(`/incidents/${incidentId}/resolve`);
-      await fetchOpenIncidents();
+      // Remove from local state immediately
+      setIncidents((prev) => prev.filter((inc) => (inc._id || inc.id) !== incidentId));
     } catch {
     } finally {
       setLoadingId("");
@@ -207,7 +279,7 @@ function UserDashboard({ onLogout }) {
           </div>
           <div className="dashboard-topnav-right">
             <span className="sos-pill"><strong>Active SOS:</strong> {incidents.length}</span>
-            <span className="muted-meta">Last sync: 2 mins ago</span>
+            <span className="muted-meta">Last sync: {lastSyncTime ? `${Math.max(0, Math.floor((Date.now() - lastSyncTime.getTime()) / 1000))}s ago` : "syncing..."}</span>
             <button type="button" className="dashboard-btn logout-btn" onClick={onLogout}>
               Logout
             </button>

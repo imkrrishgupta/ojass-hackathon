@@ -91,13 +91,14 @@ const computeVolunteerSuggestions = async (incident) => {
       volunteerRating: item.candidate.volunteerRating,
       trustScore: item.candidate.trustScore,
       skills: item.candidate.skills || [],
+      matchedSkills: item.matchedSkills || [],
       distanceKm: Number(item.distanceKm.toFixed(2)),
       baselineScore: Number(item.score.toFixed(3)),
     }));
 
     const llmOutput = await runLLMJson({
       systemPrompt:
-        "You are an emergency dispatcher AI. Pick best volunteer and rank backup candidates. Return strict JSON only.",
+        "You are an emergency dispatcher AI. Pick the best volunteer based on skill match, rating, trust score, and proximity. Strongly prefer candidates with skills matching the incident type. Return strict JSON only.",
       userPrompt: `Incident context: ${JSON.stringify({
         incidentId: incident._id,
         type: incident.type,
@@ -273,6 +274,12 @@ export const createIncident = asyncHandler(async (req, res) => {
     dispatchInfo,
   };
 
+  // Broadcast new incident to all connected clients
+  try {
+    const io = getIO();
+    io.emit("INCIDENT_UPDATED", incident);
+  } catch {}
+
   return res
     .status(201)
     .json(new ApiResponse(201, responseData, dispatchInfo
@@ -342,7 +349,17 @@ export const respondToIncident = asyncHandler(async (req, res) => {
     await incident.save();
   }
 
-  return res.status(200).json(new ApiResponse(200, incident, "Responder joined"));
+  // Populate & broadcast updated incident to all clients
+  const populated = await Incident.findById(incidentId)
+    .populate("createdBy", "fullName phone")
+    .populate("responders.userId", "fullName phone");
+
+  try {
+    const io = getIO();
+    io.emit("INCIDENT_UPDATED", populated);
+  } catch {}
+
+  return res.status(200).json(new ApiResponse(200, populated, "Responder joined"));
 });
 
 export const resolveIncident = asyncHandler(async (req, res) => {
@@ -361,6 +378,13 @@ export const resolveIncident = asyncHandler(async (req, res) => {
   incident.resolvedBy = req.user._id;
   incident.resolvedAt = new Date();
   await incident.save();
+
+  // Broadcast resolution to all clients
+  try {
+    const io = getIO();
+    io.emit("INCIDENT_UPDATED", incident);
+    io.emit("INCIDENT_CLOSED", { incidentId: incident._id });
+  } catch {}
 
   return res.status(200).json(new ApiResponse(200, incident, "Incident marked resolved"));
 });
