@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MapView from "../components/MapView";
-import { Activity, Clock3, ShieldAlert, AlertCircle } from "lucide-react";
+import { Activity, Clock3, ShieldAlert, AlertCircle, Award, MapPin, Heart } from "lucide-react";
 import { axiosInstance } from "../api/axios.js";
 
 function UserDashboard({ onLogout }) {
@@ -340,7 +340,16 @@ function UserDashboard({ onLogout }) {
 
           <section className="dashboard-panel live-map-panel user-panel glass-card">
             <h3><strong>Live Map</strong></h3>
-            <p className="panel-caption"><strong>Auto-updating</strong> incidents and responders</p>
+            <p className="panel-caption"><strong>Auto-updating</strong> incidents, resources &amp; responders</p>
+
+            <div className="ud-nav-row">
+              <button type="button" className="ud-nav-btn" onClick={() => navigate("/skill-registry")}>
+                <Award size={14} /> <strong>Skill Registry</strong>
+              </button>
+              <button type="button" className="ud-nav-btn ud-nav-btn--green" onClick={() => navigate("/community-resources")}>
+                <Heart size={14} /> <strong>Community Resources</strong>
+              </button>
+            </div>
 
             {latestIncidentSuggestion?.suggestedVolunteers?.length ? (
               <div className="ud-suggestion-box">
@@ -354,7 +363,7 @@ function UserDashboard({ onLogout }) {
             ) : null}
 
             <div className="map-box">
-              <MapView mapHeight={360} />
+              <MapView mapHeight={360} showResources={true} showSkilledResponders={true} />
             </div>
           </section>
 

@@ -32,11 +32,15 @@ import userRouter from "./routes/user.route.js";
 import otpRouter from "./routes/otp.route.js";
 import incidentRouter from "./routes/incident.route.js";
 import assistantRouter from "./routes/assistant.route.js";
+import skillRouter from "./routes/skill.route.js";
+import communityResourceRouter from "./routes/communityResource.route.js";
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/otp", otpRouter);
 app.use("/api/v1/incidents", incidentRouter);
 app.use("/api/v1/assistant", assistantRouter);
+app.use("/api/v1/skills", skillRouter);
+app.use("/api/v1/community-resources", communityResourceRouter);
 
 app.use(errorHandler);
 

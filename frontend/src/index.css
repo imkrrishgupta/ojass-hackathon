@@ -2440,3 +2440,362 @@ a:hover {
     width: 100%;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   SKILL REGISTRY & COMMUNITY RESOURCES
+═══════════════════════════════════════════════════════════════ */
+
+/* Skill Registry */
+.sr-category-block {
+  margin-bottom: 14px;
+}
+
+.sr-category-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sr-custom-skill-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.sr-custom-input {
+  flex: 1;
+}
+
+.sr-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #5b4a9e !important;
+  color: #fff !important;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.sr-add-btn:hover {
+  background: #4a3a8e !important;
+}
+
+.sr-my-skills-list {
+  margin-top: 14px;
+}
+
+.sr-skill-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.sr-remove-icon {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.sr-remove-icon:hover {
+  opacity: 1;
+}
+
+.sr-save-btn {
+  margin-top: 16px;
+}
+
+.sr-search-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.sr-search-input {
+  flex: 1;
+}
+
+.sr-search-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #1565c0 !important;
+  color: #fff !important;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.sr-search-btn:hover {
+  background: #0d47a1 !important;
+}
+
+.sr-responder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.sr-responder-card {
+  background: linear-gradient(135deg, #f5f5f5 0%, #fff 100%);
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.sr-responder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.sr-responder-name {
+  font-size: 14px;
+  color: #1d2630;
+}
+
+.sr-responder-distance {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1565c0;
+  background: #e3f2fd;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.sr-responder-skills {
+  margin-top: 4px;
+  gap: 4px !important;
+}
+
+.sr-skill-mini {
+  font-size: 11px !important;
+  padding: 2px 8px !important;
+  border-radius: 6px !important;
+}
+
+.sr-responder-meta {
+  display: flex;
+  gap: 14px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #666;
+}
+
+.sr-responder-meta span {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Leaderboard */
+.sr-leaderboard-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sr-rank {
+  font-size: 14px;
+  font-weight: 800;
+  color: #5b4a9e;
+  min-width: 28px;
+}
+
+.sr-lb-rating {
+  font-size: 12px;
+  font-weight: 700;
+  color: #43a047;
+  margin-left: auto;
+}
+
+.sr-lb-skills {
+  gap: 3px !important;
+  margin-top: 2px;
+}
+
+/* Community Resources */
+.cr-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 16px;
+  margin-top: -8px;
+  margin-bottom: 4px;
+}
+
+.cr-form {
+  margin-top: 8px;
+}
+
+.cr-resource-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.cr-resource-card {
+  border-left: 3px solid #5b4a9e;
+  padding-left: 10px;
+}
+
+.cr-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #43a047;
+  background: #e8f5e9;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.cr-address,
+.cr-phone,
+.cr-hours {
+  font-size: 12px;
+  color: #777;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cr-delete-btn {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  background: #ffebee !important;
+  color: #e53935 !important;
+  border: 1px solid #ffcdd2 !important;
+  padding: 2px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cr-delete-btn:hover {
+  background: #ffcdd2 !important;
+}
+
+/* Navigation buttons in user dashboard */
+.ud-nav-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.ud-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, #5b4a9e 0%, #7c6bc4 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 3px 10px rgba(91, 74, 158, 0.25);
+}
+
+.ud-nav-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(91, 74, 158, 0.35);
+}
+
+.ud-nav-btn--green {
+  background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%);
+  box-shadow: 0 3px 10px rgba(46, 125, 50, 0.25);
+}
+
+.ud-nav-btn--green:hover {
+  box-shadow: 0 5px 14px rgba(46, 125, 50, 0.35);
+}
+
+.ud-nav-btn--blue {
+  background: linear-gradient(135deg, #1565c0 0%, #42a5f5 100%);
+  box-shadow: 0 3px 10px rgba(21, 101, 192, 0.25);
+}
+
+.ud-nav-btn--blue:hover {
+  box-shadow: 0 5px 14px rgba(21, 101, 192, 0.35);
+}
+
+/* Skilled responder highlight in SOS response */
+.ud-skilled-box,
+.ud-emergency-box {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+  border: 1px solid #c8e6c9;
+}
+
+.ud-emergency-box {
+  background: linear-gradient(135deg, #e3f2fd 0%, #e8eaf6 100%);
+  border: 1px solid #bbdefb;
+}
+
+.ud-skilled-title,
+.ud-emergency-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ud-skilled-title {
+  color: #2e7d32;
+}
+
+.ud-emergency-title {
+  color: #1565c0;
+}
+
+.ud-skilled-item,
+.ud-emergency-item {
+  font-size: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ud-skilled-item:last-child,
+.ud-emergency-item:last-child {
+  border-bottom: none;
+}
+
+@media (max-width: 900px) {
+  .sr-search-row {
+    flex-direction: column;
+  }
+  .sr-custom-skill-row {
+    flex-direction: column;
+  }
+  .cr-filter-row {
+    padding: 8px 8px;
+  }
+  .ud-nav-row {
+    flex-direction: column;
+  }
+}

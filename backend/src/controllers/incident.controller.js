@@ -1,5 +1,6 @@
 import { Incident } from "../models/incident.model.js";
 import { User } from "../models/user.model.js";
+import { CommunityResource } from "../models/communityResource.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -205,6 +206,96 @@ export const createIncident = asyncHandler(async (req, res) => {
 
   // --- Auto-dispatch best volunteer ---
   let dispatchInfo = null;
+  let skilledRespondersInfo = [];
+  let nearbyEmergencyServices = [];
+
+  // ── Auto-surface skilled responders with matching skills ──
+  try {
+    const skillKeywords = {
+      medical: ["doctor", "nurse", "paramedic", "emt", "cpr", "first aid", "surgeon", "pharmacist"],
+      gas_leak: ["firefighter", "hazmat", "engineer"],
+      car_breakdown: ["mechanic", "electrician", "engineer"],
+      urgent_help: ["cpr", "first aid", "paramedic", "emt", "doctor", "nurse"],
+      others: [],
+    };
+    const relevantSkills = skillKeywords[type] || [];
+
+    if (relevantSkills.length > 0) {
+      const skilledUsers = await User.find({
+        _id: { $ne: req.user._id },
+        isSuspended: false,
+        skills: { $elemMatch: { $regex: new RegExp(relevantSkills.join("|"), "i") } },
+        location: {
+          $near: {
+            $geometry: { type: "Point", coordinates: [parsedLng, parsedLat] },
+            $maxDistance: 10000,
+          },
+        },
+      })
+        .select("fullName phone skills trustScore volunteerRating location avatar")
+        .limit(10);
+
+      const R = 6371;
+      skilledRespondersInfo = skilledUsers.map((u) => {
+        const [uLng, uLat] = u.location?.coordinates || [0, 0];
+        const dLat = ((uLat - parsedLat) * Math.PI) / 180;
+        const dLon = ((uLng - parsedLng) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos((parsedLat * Math.PI) / 180) * Math.cos((uLat * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+        const distanceKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return {
+          _id: u._id,
+          fullName: u.fullName,
+          phone: u.phone,
+          skills: u.skills,
+          trustScore: u.trustScore,
+          volunteerRating: u.volunteerRating,
+          avatar: u.avatar,
+          lat: uLat,
+          lng: uLng,
+          distanceKm: Number(distanceKm.toFixed(2)),
+        };
+      });
+    }
+  } catch (err) {
+    console.error("[SkilledResponders] Could not fetch:", err.message);
+  }
+
+  // ── Auto-surface nearby emergency services (hospitals, fire stations, etc.) ──
+  try {
+    const emergencyTypes = ["hospital", "fire_station", "police_station", "pharmacy"];
+    const services = await CommunityResource.find({
+      isActive: true,
+      type: { $in: emergencyTypes },
+      location: {
+        $near: {
+          $geometry: { type: "Point", coordinates: [parsedLng, parsedLat] },
+          $maxDistance: 10000,
+        },
+      },
+    }).limit(10);
+
+    const R = 6371;
+    nearbyEmergencyServices = services.map((r) => {
+      const [rLng, rLat] = r.location?.coordinates || [0, 0];
+      const dLat = ((rLat - parsedLat) * Math.PI) / 180;
+      const dLon = ((rLng - parsedLng) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((parsedLat * Math.PI) / 180) * Math.cos((rLat * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+      const distanceKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return {
+        ...r.toObject(),
+        lat: rLat,
+        lng: rLng,
+        distanceKm: Number(distanceKm.toFixed(2)),
+      };
+    });
+  } catch (err) {
+    console.error("[EmergencyServices] Could not fetch:", err.message);
+  }
+
   try {
     const suggestions = await computeVolunteerSuggestions(incident);
     const best = suggestions.recommendedVolunteer;
@@ -271,6 +362,8 @@ export const createIncident = asyncHandler(async (req, res) => {
   const responseData = {
     ...incident.toObject(),
     dispatchInfo,
+    skilledResponders: skilledRespondersInfo,
+    nearbyEmergencyServices,
   };
 
   return res

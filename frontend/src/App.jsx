@@ -5,6 +5,8 @@ import NotFound from "./pages/NotFound";
 import Register from "./pages/Register";
 import ReportIncident from "./pages/ReportIncident";
 import UserDashboard from "./pages/UserDashboard";
+import SkillRegistry from "./pages/SkillRegistry";
+import CommunityResources from "./pages/CommunityResources";
 
 const ADMIN_PHONE = "9625113505";
 
@@ -68,6 +70,8 @@ function App() {
       />
       <Route path="/user-dashboard" element={<UserDashboard onLogout={backToLogin} />} />
       <Route path="/report-incident" element={<ReportIncident />} />
+      <Route path="/skill-registry" element={<SkillRegistry />} />
+      <Route path="/community-resources" element={<CommunityResources />} />
       <Route
         path="/admin-dashboard"
         element={<AdminDashboard onLogout={backToLogin} />}

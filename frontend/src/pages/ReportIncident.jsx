@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { axiosInstance } from "../api/axios";
 import { emitIncidentUpdate } from "../socket";
-import { ShieldAlert, AlertCircle, Send, ArrowLeft, CheckCircle2, MapPin, Radio, FileText, Users } from "lucide-react";
+import { ShieldAlert, AlertCircle, Send, ArrowLeft, CheckCircle2, MapPin, Radio, FileText, Users, Heart, Building2, Award } from "lucide-react";
 
 const getStoredUser = () => {
   try {
@@ -26,6 +26,8 @@ function ReportIncident() {
   const [selectedVolunteerId, setSelectedVolunteerId] = useState("");
   const [sendingSms, setSendingSms] = useState(false);
   const [showSuggestionPopup, setShowSuggestionPopup] = useState(false);
+  const [skilledResponders, setSkilledResponders] = useState([]);
+  const [nearbyEmergencyServices, setNearbyEmergencyServices] = useState([]);
 
   const isFormValid = useMemo(() => type && description.trim(), [type, description]);
 
@@ -71,6 +73,10 @@ function ReportIncident() {
 
       const incident = response.data?.data;
       setSubmittedIncidentId(incident?._id || "");
+
+      // Capture skilled responders and emergency services from SOS response
+      setSkilledResponders(incident?.skilledResponders || []);
+      setNearbyEmergencyServices(incident?.nearbyEmergencyServices || []);
 
       // Auto-dispatch info comes directly from create response now
       const autoDispatchInfo = incident?.dispatchInfo;
@@ -362,6 +368,36 @@ function ReportIncident() {
                 </div>
               </div>
             ) : null}
+
+            {/* Skilled responders auto-surfaced on SOS */}
+            {skilledResponders.length > 0 && (
+              <div className="ud-skilled-box">
+                <p className="ud-skilled-title">
+                  <Award size={14} /> <strong>Skilled Responders Nearby</strong>
+                </p>
+                {skilledResponders.map((sr) => (
+                  <div className="ud-skilled-item" key={sr._id}>
+                    <span><strong>{sr.fullName}</strong> — {(sr.skills || []).join(", ")}</span>
+                    <span className="sr-responder-distance">{sr.distanceKm} km</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Emergency services auto-surfaced on SOS */}
+            {nearbyEmergencyServices.length > 0 && (
+              <div className="ud-emergency-box">
+                <p className="ud-emergency-title">
+                  <Building2 size={14} /> <strong>Nearby Emergency Services</strong>
+                </p>
+                {nearbyEmergencyServices.map((es) => (
+                  <div className="ud-emergency-item" key={es._id}>
+                    <span><strong>{es.name}</strong> ({(es.type || "").replace(/_/g, " ")})</span>
+                    <span className="sr-responder-distance">{es.distanceKm} km</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Right panel — Info */}

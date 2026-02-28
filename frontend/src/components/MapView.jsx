@@ -71,9 +71,13 @@ export default function MapView({
   mapHeight = 320,
   showRadius = true,
   radiusMeters = 2000,
+  showResources = true,
+  showSkilledResponders = false,
 }) {
   const [myLocation, setMyLocation] = useState(null);
   const [incidents, setIncidents] = useState([]);
+  const [communityResources, setCommunityResources] = useState([]);
+  const [skilledResponders, setSkilledResponders] = useState([]);
 
   /* ── 1. Browser geolocation ── */
   useEffect(() => {
@@ -130,6 +134,34 @@ export default function MapView({
     const id = setInterval(load, 15000);
     return () => clearInterval(id);
   }, [myLocation]);
+
+  /* ── 3b. Fetch community resources ── */
+  useEffect(() => {
+    if (!myLocation || !showResources) return;
+    const loadResources = async () => {
+      try {
+        const res = await axiosInstance.get(`/community-resources/nearby?lat=${myLocation[0]}&lng=${myLocation[1]}&radius=${radiusMeters * 3}`);
+        setCommunityResources(res.data?.data || []);
+      } catch { setCommunityResources([]); }
+    };
+    loadResources();
+    const rid = setInterval(loadResources, 30000);
+    return () => clearInterval(rid);
+  }, [myLocation, showResources, radiusMeters]);
+
+  /* ── 3c. Fetch skilled responders ── */
+  useEffect(() => {
+    if (!myLocation || !showSkilledResponders) return;
+    const loadSkilled = async () => {
+      try {
+        const res = await axiosInstance.get(`/skills/nearby?lat=${myLocation[0]}&lng=${myLocation[1]}&radius=${radiusMeters * 3}`);
+        setSkilledResponders(res.data?.data || []);
+      } catch { setSkilledResponders([]); }
+    };
+    loadSkilled();
+    const sid = setInterval(loadSkilled, 30000);
+    return () => clearInterval(sid);
+  }, [myLocation, showSkilledResponders, radiusMeters]);
 
   /* ── 4. Real-time socket events ── */
   useEffect(() => {
@@ -238,6 +270,45 @@ export default function MapView({
               <Popup>{p.label || p.description || p.type || "Location"}</Popup>
             </Marker>
           ))}
+
+        {/* Community resource markers */}
+        {communityResources.map((r) => {
+          const lat = r.lat ?? r.location?.coordinates?.[1];
+          const lng = r.lng ?? r.location?.coordinates?.[0];
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+          return (
+            <Marker key={`res-${r._id}`} position={[lat, lng]} icon={icons[r.type] || icons.default}>
+              <Popup>
+                <div style={{ minWidth: 150 }}>
+                  <strong style={{ fontSize: 13 }}>{r.name}</strong>
+                  <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>{(r.type || "").replace(/_/g, " ").toUpperCase()}</div>
+                  {r.description && <div style={{ fontSize: 12, marginTop: 2 }}>{r.description}</div>}
+                  {r.address && <div style={{ fontSize: 12, color: "#555" }}>{r.address}</div>}
+                  {r.distanceKm !== undefined && <div style={{ fontSize: 12, fontWeight: 600, color: "#1565c0", marginTop: 2 }}>{r.distanceKm} km away</div>}
+                  {r.verified && <div style={{ fontSize: 11, color: "#43a047", marginTop: 2 }}>✅ Verified</div>}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+
+        {/* Skilled responder markers */}
+        {skilledResponders.map((sr) => {
+          if (!Number.isFinite(sr.lat) || !Number.isFinite(sr.lng)) return null;
+          return (
+            <Marker key={`sr-${sr._id}`} position={[sr.lat, sr.lng]} icon={icons.skilled_responder}>
+              <Popup>
+                <div style={{ minWidth: 150 }}>
+                  <strong style={{ fontSize: 13 }}>{sr.fullName}</strong>
+                  <div style={{ fontSize: 12, color: "#00c853", marginTop: 2 }}>Skilled Responder</div>
+                  <div style={{ fontSize: 11, marginTop: 2 }}>{(sr.skills || []).join(", ")}</div>
+                  <div style={{ fontSize: 12, marginTop: 2 }}>Rating: {sr.volunteerRating}/100 • Trust: {sr.trustScore}/10</div>
+                  {sr.distanceKm !== undefined && <div style={{ fontSize: 12, fontWeight: 600, color: "#1565c0", marginTop: 2 }}>{sr.distanceKm} km away</div>}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
 
       {/* ═══ Nearby incidents list below map ═══ */}
