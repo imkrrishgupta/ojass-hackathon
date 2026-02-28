@@ -38,15 +38,23 @@ export const runLLMJson = async ({
   }
 
   const data = await response.json();
-  const content = data?.choices?.[0]?.message?.content;
+  let content = data?.choices?.[0]?.message?.content;
 
   if (!content) {
     throw new Error("LLM response did not include content");
   }
 
   try {
+    // 🔥 CLEAN JSON IF MODEL RETURNS ```json ```
+    content = content.trim();
+
+    if (content.startsWith("```")) {
+      content = content.replace(/```json|```/g, "").trim();
+    }
+
     return JSON.parse(content);
-  } catch {
+  } catch (err) {
+    console.log("❌ LLM JSON PARSE ERROR:", content);
     throw new Error("LLM returned non-JSON content");
   }
 };

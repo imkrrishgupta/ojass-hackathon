@@ -4,6 +4,10 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { User } from "../models/user.model.js";
 import { runLLMJson } from "../utils/llm.js";
 
+/* ============================
+   CONSTANTS
+============================ */
+
 const guidanceMap = {
   fire: [
     "Move everyone away from smoke and flames immediately.",
@@ -59,15 +63,11 @@ const volunteerQuestionBank = {
   ],
 };
 
-const levelToScore = {
-  never: 1,
-  basic: 2,
-  intermediate: 3,
-  advanced: 4,
-  expert: 5,
-};
-
 const normalizePhone = (phone) => String(phone ?? "").replace(/\D/g, "").slice(-10);
+
+/* ============================
+   GET VOLUNTEER QUESTIONS
+============================ */
 
 export const getVolunteerQuestions = asyncHandler(async (req, res) => {
   const { incidentType = "other", volunteerPhone = "" } = req.query;
@@ -127,6 +127,10 @@ export const getVolunteerQuestions = asyncHandler(async (req, res) => {
   );
 });
 
+/* ============================
+   RATE VOLUNTEER (UPDATED)
+============================ */
+
 export const rateVolunteer = asyncHandler(async (req, res) => {
   const { incidentType = "other", answers = [], skills = [], volunteerPhone } = req.body;
 
@@ -134,68 +138,105 @@ export const rateVolunteer = asyncHandler(async (req, res) => {
     throw new ApiError(400, "answers array is required");
   }
 
-  const type = volunteerQuestionBank[incidentType] ? incidentType : "other";
+  const type = incidentType;
 
-  const normalizedAnswers = answers
-    .map((item, index) => {
-      const questionId = String(item.questionId || `q_${index + 1}`);
-      const question = String(item.question || "").trim() || `Question ${index + 1}`;
-      const answerText = String(item.answerText || item.answer || "").trim();
-      const normalizedLevel = String(item.answer || "").toLowerCase();
-      const fallbackScoreFromLevel = levelToScore[normalizedLevel] || 0;
-      const fallbackScoreFromText = answerText.length >= 180 ? 4 : answerText.length >= 90 ? 3 : answerText.length >= 30 ? 2 : 1;
-      const score = Number(item.score) || fallbackScoreFromLevel || fallbackScoreFromText;
+  const normalizedAnswers = answers.map((item, index) => {
+    const questionId = String(item.questionId || `q_${index + 1}`);
+    const answerText = String(item.answerText || item.answer || "").trim();
+    const lower = answerText.toLowerCase();
 
-      return {
-        questionId,
-        question,
-        answer: normalizedLevel || answerText || "basic",
-        answerText,
-        score,
-      };
-    })
-    .filter(Boolean);
+    let score = 1;
 
-  if (!normalizedAnswers.length) {
-    throw new ApiError(400, "No valid answers provided");
-  }
+    // Meaning-based scoring (not text length)
+    if (/\b(doctor|paramedic|nurse|emt|surgeon)\b/i.test(lower)) score = 5;
+    else if (/\b(always available|always ready)\b/i.test(lower)) score = 5;
+    else if (/\b(very confident|highly confident)\b/i.test(lower)) score = 4;
+    else if (/\b(confident|experienced|trained)\b/i.test(lower)) score = 4;
+    else if (/\b(basic first aid|cpr)\b/i.test(lower)) score = 3;
+    else if (/\b(sometimes|moderate|some experience)\b/i.test(lower)) score = 3;
+    else if (/\b(not sure|rarely|little)\b/i.test(lower)) score = 2;
+    else if (/\b(no|never|panic|can't|cannot)\b/i.test(lower)) score = 1;
 
-  let llmRating;
+    return {
+      questionId,
+      answerText,
+      score,
+    };
+  });
+
+  let llmRating = null;
 
   try {
     llmRating = await runLLMJson({
-      systemPrompt:
-        "You are an emergency volunteer evaluator. Score each answer strictly based on practical emergency readiness. Output strict JSON only.",
-      userPrompt: `Incident type: ${type}. Evaluate volunteer response quality using this answer set: ${JSON.stringify(
-        normalizedAnswers
-      )}. Return JSON keys: rating(number 0-100), grade(one of A,B,C,D), strengths(array of 2-4 strings), improvements(array of 2-4 strings), questionScores(array of {questionId, score, rationale}). questionScores.score must be integer from 1 to 5 and reflect the answer text quality, correctness, and actionability.`,
+      systemPrompt: `
+You are a strict emergency volunteer capability evaluator.
+
+Users may answer in messy English, short text, or confident claims.
+
+Understand meaning deeply.
+
+Rules:
+- Doctor/paramedic/nurse → 90+
+- Always available + calm → 80+
+- Basic first aid → 50–70
+- Sometimes available → reduce
+- Panic / unsure → below 40
+- Joke/irrelevant → below 20
+
+Do NOT score based on text length.
+Do NOT give same score for everyone.
+
+Return STRICT JSON:
+
+{
+ "rating": number 0-100,
+ "grade": "A" | "B" | "C" | "D" | "E",
+ "strengths": ["point","point"],
+ "improvements": ["point","point"],
+ "questionScores":[
+   {"questionId":"id","score":1-5,"rationale":"short"}
+ ]
+}
+
+rating must always exist.
+Return JSON only.
+`,
+      userPrompt: `
+Incident type: ${type}
+Answers:
+${JSON.stringify(normalizedAnswers, null, 2)}
+`,
       temperature: 0.2,
-      maxTokens: 900,
+      maxTokens: 700,
     });
-  } catch {
-    llmRating = null;
+
+    if (llmRating?.score && !llmRating?.rating) {
+      llmRating.rating = llmRating.score;
+    }
+
+  } catch (err) {
+    console.log("LLM ERROR:", err.message);
   }
 
-  const weightedAverage =
-    normalizedAnswers.reduce((sum, item) => sum + item.score, 0) / normalizedAnswers.length;
-  const fallbackRating = Math.round((weightedAverage / 5) * 100);
+  // fallback rating (FIXED)
+  const avg = normalizedAnswers.reduce((sum, a) => sum + a.score, 0) / normalizedAnswers.length;
 
-  const rating = Math.max(0, Math.min(100, Math.round(Number(llmRating?.rating ?? fallbackRating))));
-  const grade = llmRating?.grade || (rating >= 80 ? "A" : rating >= 65 ? "B" : rating >= 50 ? "C" : "D");
-
-  const llmQuestionScores = Array.isArray(llmRating?.questionScores) ? llmRating.questionScores : [];
-  const llmScoreMap = new Map(
-    llmQuestionScores.map((item) => [
-      item.questionId,
-      Math.max(1, Math.min(5, Math.round(Number(item.score || 0) || 0))),
-    ])
+  const fallbackRating = Math.max(
+    35,
+    Math.round((avg / 5) * 100)
   );
 
-  const storedAssessment = normalizedAnswers.map((item) => ({
-    questionId: item.questionId,
-    answer: item.answer,
-    score: llmScoreMap.get(item.questionId) || item.score,
-  }));
+  const rating = Math.max(
+    0,
+    Math.min(100, Math.round(Number(llmRating?.rating ?? fallbackRating)))
+  );
+
+  const grade =
+    llmRating?.grade ||
+    (rating >= 85 ? "A" :
+     rating >= 70 ? "B" :
+     rating >= 55 ? "C" :
+     "D");
 
   let targetUser = null;
 
@@ -203,40 +244,30 @@ export const rateVolunteer = asyncHandler(async (req, res) => {
     targetUser = await User.findById(req.user._id);
   }
 
-  if (!targetUser) {
-    const cleanPhone = normalizePhone(volunteerPhone);
-    if (!cleanPhone) {
-      throw new ApiError(400, "volunteerPhone is required when not logged in");
-    }
-
+  if (!targetUser && volunteerPhone) {
+    const cleanPhone = String(volunteerPhone).replace(/\D/g, "").slice(-10);
     targetUser = await User.findOne({ phone: cleanPhone });
   }
 
   if (!targetUser) {
-    throw new ApiError(404, "Volunteer user not found for rating");
+    throw new ApiError(404, "Volunteer not found");
   }
 
   const user = await User.findByIdAndUpdate(
     targetUser._id,
     {
       volunteerRating: rating,
-      volunteerAssessment: storedAssessment,
       volunteerRatingUpdatedAt: new Date(),
       skills: Array.isArray(skills) ? skills : targetUser.skills || [],
     },
-    { new: true }
+    { returnDocument: "after" }
   ).select("fullName phone volunteerRating volunteerRatingUpdatedAt skills");
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
 
   return res.status(200).json(
     new ApiResponse(
       200,
       {
         volunteer: user,
-        incidentType: type,
         rating,
         grade,
         strengths: llmRating?.strengths || [],
@@ -246,6 +277,10 @@ export const rateVolunteer = asyncHandler(async (req, res) => {
     )
   );
 });
+
+/* ============================
+   CRISIS GUIDANCE
+============================ */
 
 export const getCrisisGuidance = asyncHandler(async (req, res) => {
   const { type = "other", description = "" } = req.body;

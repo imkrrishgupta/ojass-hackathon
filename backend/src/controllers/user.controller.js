@@ -144,7 +144,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
     { $unset: { refreshToken: 1 } },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   return res
@@ -217,7 +217,7 @@ export const updateLocation = asyncHandler(async (req, res) => {
       },
       lastSeen: new Date(),
     },
-    { new: true }
+    { returnDocument: 'after' }
   ).select("-password -refreshToken");
 
   return res
@@ -237,7 +237,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
     updates.skills = Array.isArray(skills) ? skills : JSON.parse(skills);
 
   const user = await User.findByIdAndUpdate(req.user._id, updates, {
-    new: true,
+    returnDocument: 'after',
     runValidators: true,
   }).select("-password -refreshToken");
 
@@ -261,7 +261,7 @@ export const updateAvatar = asyncHandler(async (req, res) => {
   const user = await User.findByIdAndUpdate(
     req.user._id,
     { avatar: uploaded.secure_url },
-    { new: true }
+    { returnDocument: 'after' }
   ).select("-password -refreshToken");
 
   return res
@@ -302,7 +302,7 @@ export const addGuardian = asyncHandler(async (req, res) => {
   const user = await User.findByIdAndUpdate(
     req.user._id,
     { $addToSet: { guardians: guardian._id } }, // $addToSet prevents duplicate IDs
-    { new: true }
+    { returnDocument: 'after' }
   ).select("-password -refreshToken");
 
   return res.status(200).json(new ApiResponse(200, user.guardians, "Guardian added"));
