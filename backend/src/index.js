@@ -4,6 +4,9 @@ import { app } from "./app.js";
 import http from "http";
 import { Server } from "socket.io";
 import { Incident } from "./models/incident.model.js";
+import { User } from "./models/user.model.js";
+import { setIO } from "./socketInstance.js";
+import { sendEmergencySMS } from "./utils/alertSMS.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -26,6 +29,9 @@ const io = new Server(server, {
     credentials: true,
   },
 });
+
+// Share io instance so controllers can emit events
+setIO(io);
 
 const users = new Map(); 
 
@@ -82,6 +88,65 @@ io.on("connection", (socket) => {
         radiusMeters: 2000,
         status: "open",
       });
+
+      // --- Auto-dispatch best volunteer via socket path ---
+      try {
+        const candidates = await User.find({
+          _id: { $ne: userId },
+          isSuspended: false,
+          location: {
+            $near: {
+              $geometry: { type: "Point", coordinates: [Number(lng), Number(lat)] },
+              $maxDistance: incident.radiusMeters || 2000,
+            },
+          },
+        }).select("fullName phone trustScore volunteerRating skills location").limit(10);
+
+        if (candidates.length) {
+          // Pick the highest-rated candidate
+          candidates.sort((a, b) => (b.volunteerRating || 0) - (a.volunteerRating || 0));
+          const best = candidates[0];
+          const [cLng, cLat] = best.location?.coordinates || [0, 0];
+          const distanceKm = getDistance(Number(lat), Number(lng), cLat, cLng);
+
+          incident.responders.push({ userId: best._id });
+          incident.autoDispatch = {
+            volunteerId: best._id,
+            volunteerName: best.fullName || "",
+            volunteerPhone: best.phone || "",
+            distanceKm: Number(distanceKm.toFixed(2)),
+            rating: best.volunteerRating || 50,
+            dispatchedAt: new Date(),
+            status: "dispatched",
+            reason: "Auto-dispatched (socket path)",
+          };
+          await incident.save();
+
+          // Notify dispatched volunteer via socket
+          io.emit("VOLUNTEER_DISPATCHED", {
+            incidentId: incident._id,
+            incidentType: type,
+            description: description || "",
+            volunteerId: String(best._id),
+            volunteerName: best.fullName,
+            distanceKm: Number(distanceKm.toFixed(2)),
+            lat: Number(lat),
+            lng: Number(lng),
+          });
+
+          // Send SMS
+          try {
+            if (best.phone) {
+              await sendEmergencySMS({
+                phones: [best.phone],
+                message: `NEARHELP AUTO-DISPATCH: You are assigned to a ${type.toUpperCase()} incident. Open app to navigate.`,
+              });
+            }
+          } catch {}
+        }
+      } catch (dispatchErr) {
+        console.error("[Socket AutoDispatch]", dispatchErr.message);
+      }
 
       const radiusKm = (incident.radiusMeters || 2000) / 1000;
 
