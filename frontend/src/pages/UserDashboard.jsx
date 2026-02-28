@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import MapView from "../components/MapView";
-import { Activity, Clock3, ShieldAlert, AlertCircle, Award, MapPin, Heart } from "lucide-react";
+import { Activity, Clock3, ShieldAlert, AlertCircle, Award, MapPin, Heart, Send, MessageCircle } from "lucide-react";
 import { axiosInstance } from "../api/axios.js";
 import { socket } from "../socket.js";
 
@@ -20,6 +20,10 @@ function UserDashboard({ onLogout }) {
   const [latestIncidentSuggestion, setLatestIncidentSuggestion] = useState(null);
   const [activeFilters, setActiveFilters] = useState([]);
   const [lastSyncTime, setLastSyncTime] = useState(null);
+  const [chatMessages, setChatMessages] = useState({});
+  const [chatInput, setChatInput] = useState("");
+  const joinedRoomsRef = useRef(new Set());
+  const chatEndRefs = useRef({});
 
   const FILTER_TYPES = [
     { label: "Accident", type: "accident" },
@@ -50,6 +54,32 @@ function UserDashboard({ onLogout }) {
     const timer = setInterval(fetchOpenIncidents, 10000);
     return () => clearInterval(timer);
   }, [fetchOpenIncidents]);
+
+  const getUserName = useCallback(() => {
+    try {
+      const raw = localStorage.getItem("user");
+      return raw ? JSON.parse(raw)?.fullName || "Responder" : "Responder";
+    } catch { return "Responder"; }
+  }, []);
+
+  const joinChatRoom = useCallback((incidentId) => {
+    // Only send join announcement once per incident per session
+    if (!joinedRoomsRef.current.has(incidentId)) {
+      socket.emit("JOIN_INCIDENT_CHAT", { incidentId, userName: getUserName() });
+      joinedRoomsRef.current.add(incidentId);
+    }
+  }, [getUserName]);
+
+  const sendChatMessage = useCallback((incidentId) => {
+    const msg = chatInput.trim();
+    if (!msg) return;
+    socket.emit("SEND_CHAT_MESSAGE", {
+      incidentId,
+      sender: getUserName(),
+      message: msg,
+    });
+    setChatInput("");
+  }, [chatInput, getUserName]);
 
   /* ── Real-time socket listeners ── */
   useEffect(() => {
@@ -100,18 +130,45 @@ function UserDashboard({ onLogout }) {
       fetchOpenIncidents();
     };
 
+    // Listen for chat messages
+    const onChatMessage = (msg) => {
+      if (!msg?.incidentId) return;
+      setChatMessages((prev) => {
+        const existing = prev[msg.incidentId] || [];
+        // Deduplicate by timestamp+sender+message
+        const isDup = existing.some(
+          (m) => m.timestamp === msg.timestamp && m.sender === msg.sender && m.message === msg.message
+        );
+        if (isDup) return prev;
+        return { ...prev, [msg.incidentId]: [...existing, msg] };
+      });
+    };
+
     socket.on("INCIDENT_UPDATED", onIncidentUpdated);
     socket.on("INCIDENT_CLOSED", onIncidentClosed);
     socket.on("INCIDENT_NEARBY", onIncidentNearby);
     socket.on("INCIDENT_RESPONDER", onIncidentResponder);
+    socket.on("CHAT_MESSAGE", onChatMessage);
+
+    // Re-join chat rooms after socket reconnect
+    const onReconnect = () => {
+      console.log("[Socket] Reconnected — re-joining chat rooms");
+      for (const roomId of joinedRoomsRef.current) {
+        socket.emit("JOIN_INCIDENT_CHAT", { incidentId: roomId, userName: getUserName() });
+      }
+      fetchOpenIncidents();
+    };
+    socket.on("connect", onReconnect);
 
     return () => {
       socket.off("INCIDENT_UPDATED", onIncidentUpdated);
       socket.off("INCIDENT_CLOSED", onIncidentClosed);
       socket.off("INCIDENT_NEARBY", onIncidentNearby);
       socket.off("INCIDENT_RESPONDER", onIncidentResponder);
+      socket.off("CHAT_MESSAGE", onChatMessage);
+      socket.off("connect", onReconnect);
     };
-  }, [fetchOpenIncidents]);
+  }, [fetchOpenIncidents, getUserName]);
 
   const fetchAssessmentQuestions = async (type = assessmentType) => {
     setAssessmentLoading(true);
@@ -159,15 +216,18 @@ function UserDashboard({ onLogout }) {
     setLoadingId(incidentId);
     try {
       const res = await axiosInstance.post(`/incidents/${incidentId}/respond`);
-      setActiveChatIncident(incidentId);
-      // Update local state immediately with the response data
       const updated = res.data?.data;
       if (updated) {
+        // Update local state immediately with the populated response
         setIncidents((prev) =>
           prev.map((inc) => (inc._id || inc.id) === incidentId ? updated : inc)
         );
       }
-    } catch {
+      // Open chat panel & announce join
+      setActiveChatIncident(incidentId);
+      joinChatRoom(incidentId);
+    } catch (err) {
+      console.error("Respond error:", err);
     } finally {
       setLoadingId("");
     }
@@ -489,7 +549,11 @@ function UserDashboard({ onLogout }) {
                       <button
                         type="button"
                         className="dashboard-btn"
-                        onClick={() => setActiveChatIncident(incident._id)}
+                        onClick={() => {
+                          const id = incident._id;
+                          setActiveChatIncident((prev) => prev === id ? null : id);
+                          joinChatRoom(id);
+                        }}
                       >
                         <strong>Responder Chat</strong>
                       </button>
@@ -516,11 +580,69 @@ function UserDashboard({ onLogout }) {
                     ) : null}
 
                     {activeChatIncident === incident._id ? (
-                      <div className="responder-chat-placeholder ud-chat-box">
-                        <p className="responder-chat-title"><strong>Per-responder chat</strong> (demo placeholder)</p>
-                        <p className="responder-chat-line"><strong>Broadcaster:</strong> Please approach from Gate 2, heavy traffic on main road.</p>
-                        <p className="responder-chat-line"><strong>Responder:</strong> On my way, ETA 4 mins.</p>
-                        <p className="responder-chat-meta">Live chat transport can be plugged with socket room by incidentId.</p>
+                      <div className="responder-chat-placeholder ud-chat-box" style={{ background: "#f8fafc", borderRadius: 10, padding: 14, marginTop: 8, border: "1px solid #e2e8f0" }}>
+                        <p className="responder-chat-title" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                          <MessageCircle size={16} />
+                          <strong>Responder Chat</strong>
+                          <span style={{ fontSize: 11, color: "#22c55e", marginLeft: 4 }}>● Live</span>
+                          <span style={{ fontSize: 11, color: "#64748b", marginLeft: "auto" }}>{incident.responders?.length || 0} in chat</span>
+                        </p>
+                        <div
+                          className="ud-chat-messages"
+                          style={{ maxHeight: 220, overflowY: "auto", marginBottom: 10, padding: "6px 0" }}
+                          ref={(el) => {
+                            if (el) {
+                              chatEndRefs.current[incident._id] = el;
+                              el.scrollTop = el.scrollHeight;
+                            }
+                          }}
+                        >
+                          {(chatMessages[incident._id] || []).length === 0 ? (
+                            <p className="responder-chat-meta" style={{ color: "#94a3b8", textAlign: "center", padding: 16 }}>No messages yet. Say something to coordinate!</p>
+                          ) : (
+                            (chatMessages[incident._id] || []).map((msg, idx) => (
+                              <div
+                                key={idx}
+                                style={{
+                                  padding: "4px 0",
+                                  borderBottom: "1px solid #f1f5f9",
+                                  ...(msg.isSystem ? { fontStyle: "italic", opacity: 0.6, fontSize: 12, textAlign: "center" } : {}),
+                                }}
+                              >
+                                {msg.isSystem ? (
+                                  <span style={{ color: "#64748b" }}>{msg.message}</span>
+                                ) : (
+                                  <>
+                                    <strong style={{ color: msg.sender === getUserName() ? "#6366f1" : "#0f172a" }}>{msg.sender}:</strong>{" "}
+                                    <span>{msg.message}</span>
+                                    <span style={{ fontSize: 10, color: "#94a3b8", marginLeft: 8 }}>
+                                      {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <input
+                            type="text"
+                            className="report-input"
+                            placeholder="Type a message..."
+                            value={activeChatIncident === incident._id ? chatInput : ""}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && sendChatMessage(incident._id)}
+                            style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                          />
+                          <button
+                            type="button"
+                            className="dashboard-btn ud-action-respond"
+                            onClick={() => sendChatMessage(incident._id)}
+                            style={{ padding: "8px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 4 }}
+                          >
+                            <Send size={14} /> <strong>Send</strong>
+                          </button>
+                        </div>
                       </div>
                     ) : null}
                   </div>

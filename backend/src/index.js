@@ -174,6 +174,32 @@ io.on("connection", (socket) => {
     io.emit("INCIDENT_RESPONDER", payload);
   });
 
+  // ── Per-incident chat (broadcast to all – frontend filters by incidentId) ──
+  socket.on("JOIN_INCIDENT_CHAT", ({ incidentId, userName }) => {
+    if (!incidentId) return;
+    console.log(`💬 ${userName || socket.id} joined chat for incident ${incidentId}`);
+    // Broadcast join to ALL connected clients so everyone sees it
+    io.emit("CHAT_MESSAGE", {
+      incidentId,
+      sender: "System",
+      message: `${userName || "A responder"} joined the chat`,
+      timestamp: new Date().toISOString(),
+      isSystem: true,
+    });
+  });
+
+  socket.on("SEND_CHAT_MESSAGE", ({ incidentId, sender, message }) => {
+    if (!incidentId || !message) return;
+    // Broadcast to ALL connected clients (frontend filters by incidentId)
+    io.emit("CHAT_MESSAGE", {
+      incidentId,
+      sender: sender || "Anonymous",
+      message,
+      timestamp: new Date().toISOString(),
+      isSystem: false,
+    });
+  });
+
   // incident resolved
   socket.on("INCIDENT_RESOLVED", (payload) => {
     io.emit("INCIDENT_CLOSED", payload);

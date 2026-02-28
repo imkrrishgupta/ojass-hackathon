@@ -464,10 +464,18 @@ export const respondToIncident = asyncHandler(async (req, res) => {
 
   try {
     const io = getIO();
+    // Broadcast updated incident so all dashboards update the responder count
     io.emit("INCIDENT_UPDATED", populated);
+    // Also emit specific responder event for any listeners
+    io.emit("INCIDENT_RESPONDER", {
+      incidentId,
+      userId: String(req.user._id),
+      fullName: req.user.fullName,
+      respondersCount: populated.responders.length,
+    });
   } catch {}
 
-  return res.status(200).json(new ApiResponse(200, populated, "Responder joined"));
+  return res.status(200).json(new ApiResponse(200, populated, alreadyResponding ? "Already responding" : "Responder joined"));
 });
 
 export const resolveIncident = asyncHandler(async (req, res) => {
