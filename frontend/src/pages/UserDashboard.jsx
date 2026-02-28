@@ -26,7 +26,7 @@ function UserDashboard({ onLogout }) {
   const chatEndRefs = useRef({});
 
   const FILTER_TYPES = [
-    { label: "Accident", type: "accident" },
+    { label: "Road", type: "road" },
     { label: "Fire", type: "fire" },
     { label: "Health", type: "health" },
     { label: "Robbery", type: "robbery" },

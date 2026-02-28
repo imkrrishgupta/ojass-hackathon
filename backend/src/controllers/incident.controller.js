@@ -522,10 +522,16 @@ export const resolveIncident = asyncHandler(async (req, res) => {
 });
 
 export const adminIncidentSummary = asyncHandler(async (_, res) => {
-  const [openCount, resolvedCount, recent] = await Promise.all([
+  const [openCount, resolvedCount, totalCount, recent] = await Promise.all([
     Incident.countDocuments({ status: "open" }),
     Incident.countDocuments({ status: "resolved" }),
-    Incident.find().sort({ createdAt: -1 }).limit(20),
+    Incident.countDocuments(),
+    Incident.find()
+      .populate("createdBy", "fullName phone avatar trustScore")
+      .populate("responders.userId", "fullName phone avatar")
+      .populate("resolvedBy", "fullName phone")
+      .sort({ createdAt: -1 })
+      .limit(100),
   ]);
 
   return res.status(200).json(
@@ -534,6 +540,7 @@ export const adminIncidentSummary = asyncHandler(async (_, res) => {
       {
         openCount,
         resolvedCount,
+        totalCount,
         incidents: recent,
       },
       "Admin incident summary fetched"

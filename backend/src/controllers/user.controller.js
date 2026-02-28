@@ -402,3 +402,56 @@ export const verifyOTP = asyncHandler(async (req, res) => {
       )
     );
 });
+
+// ── Admin: List all users ─────────────────────────────────────────────────────
+// GET /api/v1/users/admin/all
+export const adminListUsers = asyncHandler(async (req, res) => {
+  if (req.user.role !== "admin") {
+    throw new ApiError(403, "Admin access required");
+  }
+
+  const users = await User.find()
+    .select("fullName phone avatar trustScore volunteerRating skills isSuspended totalResponses successfulResponses falseAlertCount role createdAt lastSeen")
+    .sort({ createdAt: -1 });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, users, "All users fetched"));
+});
+
+// ── Admin: Toggle user suspension ─────────────────────────────────────────────
+// PATCH /api/v1/users/admin/:userId/toggle-suspend
+export const adminToggleSuspend = asyncHandler(async (req, res) => {
+  if (req.user.role !== "admin") {
+    throw new ApiError(403, "Admin access required");
+  }
+
+  const { userId } = req.params;
+  const user = await User.findById(userId);
+  if (!user) throw new ApiError(404, "User not found");
+
+  user.isSuspended = !user.isSuspended;
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { _id: user._id, isSuspended: user.isSuspended }, `User ${user.isSuspended ? "suspended" : "unsuspended"}`));
+});
+
+// ── Admin: Get dashboard stats ────────────────────────────────────────────────
+// GET /api/v1/users/admin/stats
+export const adminDashboardStats = asyncHandler(async (req, res) => {
+  if (req.user.role !== "admin") {
+    throw new ApiError(403, "Admin access required");
+  }
+
+  const [totalUsers, suspendedUsers, activeUsers] = await Promise.all([
+    User.countDocuments(),
+    User.countDocuments({ isSuspended: true }),
+    User.countDocuments({ isSuspended: false }),
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { totalUsers, suspendedUsers, activeUsers }, "Admin stats fetched"));
+});

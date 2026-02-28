@@ -13,6 +13,9 @@ import {
   addGuardian,
   sendOTP,
   verifyOTP,
+  adminListUsers,
+  adminToggleSuspend,
+  adminDashboardStats,
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { uploadAvatar } from "../middlewares/multer.middleware.js";
@@ -34,5 +37,10 @@ router.route("/update-profile").patch(verifyJWT, updateProfile);
 router.route("/update-avatar").patch(verifyJWT, uploadAvatar.single("avatar"), updateAvatar);
 router.route("/change-password").patch(verifyJWT, changePassword);
 router.route("/add-guardians").post(verifyJWT, addGuardian);
+
+// Admin routes (require JWT + admin role)
+router.route("/admin/all").get(verifyJWT, adminListUsers);
+router.route("/admin/stats").get(verifyJWT, adminDashboardStats);
+router.route("/admin/:userId/toggle-suspend").patch(verifyJWT, adminToggleSuspend);
 
 export default router;
