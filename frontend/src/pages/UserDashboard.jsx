@@ -26,11 +26,11 @@ function UserDashboard({ onLogout }) {
   const chatEndRefs = useRef({});
 
   const FILTER_TYPES = [
-    { label: "Road", type: "road" },
-    { label: "Fire", type: "fire" },
-    { label: "Health", type: "health" },
-    { label: "Robbery", type: "robbery" },
-    { label: "Breakdown", type: "breakdown" },
+    { label: "Road", type: "Road" },
+    { label: "Fire", type: "Fire" },
+    { label: "Health", type: "Health" },
+    { label: "Theft", type: "Theft" },
+    { label: "Other", type: "Other" },
   ];
 
   const toggleFilter = (type) => {
