@@ -9,6 +9,11 @@ import jwt from "jsonwebtoken";
 
 const normalizePhone = (phone) => String(phone ?? "").replace(/\D/g, "").slice(-10);
 
+const ADMIN_PHONE = process.env.ADMIN_PHONE || "9625113505";
+
+const isAdmin = (user) =>
+  user?.role === "admin" || normalizePhone(user?.phone) === normalizePhone(ADMIN_PHONE);
+
 // ── Helper: generate both tokens and save refresh token to DB ─────────────────
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -406,11 +411,11 @@ export const verifyOTP = asyncHandler(async (req, res) => {
 // ── Admin: List all users ─────────────────────────────────────────────────────
 // GET /api/v1/users/admin/all
 export const adminListUsers = asyncHandler(async (req, res) => {
-  if (req.user.role !== "admin") {
+  if (!isAdmin(req.user)) {
     throw new ApiError(403, "Admin access required");
   }
 
-  const users = await User.find()
+  const users = await User.find({ role: { $ne: "admin" } })
     .select("fullName phone avatar trustScore volunteerRating skills isSuspended totalResponses successfulResponses falseAlertCount role createdAt lastSeen")
     .sort({ createdAt: -1 });
 
@@ -422,7 +427,7 @@ export const adminListUsers = asyncHandler(async (req, res) => {
 // ── Admin: Toggle user suspension ─────────────────────────────────────────────
 // PATCH /api/v1/users/admin/:userId/toggle-suspend
 export const adminToggleSuspend = asyncHandler(async (req, res) => {
-  if (req.user.role !== "admin") {
+  if (!isAdmin(req.user)) {
     throw new ApiError(403, "Admin access required");
   }
 
@@ -441,14 +446,16 @@ export const adminToggleSuspend = asyncHandler(async (req, res) => {
 // ── Admin: Get dashboard stats ────────────────────────────────────────────────
 // GET /api/v1/users/admin/stats
 export const adminDashboardStats = asyncHandler(async (req, res) => {
-  if (req.user.role !== "admin") {
+  if (!isAdmin(req.user)) {
     throw new ApiError(403, "Admin access required");
   }
 
+  const notAdmin = { role: { $ne: "admin" } };
+
   const [totalUsers, suspendedUsers, activeUsers] = await Promise.all([
-    User.countDocuments(),
-    User.countDocuments({ isSuspended: true }),
-    User.countDocuments({ isSuspended: false }),
+    User.countDocuments(notAdmin),
+    User.countDocuments({ ...notAdmin, isSuspended: true }),
+    User.countDocuments({ ...notAdmin, isSuspended: false }),
   ]);
 
   return res
