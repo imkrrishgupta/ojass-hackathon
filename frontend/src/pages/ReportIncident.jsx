@@ -332,10 +332,10 @@ function ReportIncident() {
             {suggestedVolunteers.length > 0 ? (
               <div className="ri-volunteers-box">
                 <p className="ri-guidance-title">
-                  <Users size={14} /> <strong>LLM Suggested Volunteers</strong>
+                  <Users size={14} /> <strong>Best Matched Volunteers</strong>
                 </p>
                 <div className="ri-volunteer-list">
-                  {suggestedVolunteers.map((volunteer) => (
+                  {suggestedVolunteers.map((volunteer, idx) => (
                     <label
                       key={volunteer._id}
                       className={`ri-volunteer-item ${selectedVolunteerId === volunteer._id ? "ri-volunteer--selected" : ""}`}
@@ -349,10 +349,32 @@ function ReportIncident() {
                         className="ri-radio"
                       />
                       <div className="ri-volunteer-info">
-                        <strong>{volunteer.fullName}</strong>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          {idx === 0 && (
+                            <span style={{ background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
+                              BEST MATCH
+                            </span>
+                          )}
+                          <strong>{volunteer.fullName}</strong>
+                        </div>
                         <span className="ri-volunteer-meta">
-                          Rating <strong>{volunteer.volunteerRating}/100</strong> &bull; <strong>{volunteer.distanceKm} km</strong> away
+                          Rating <strong>{volunteer.volunteerRating}/100</strong> &bull; Trust <strong>{volunteer.trustScore}/10</strong> &bull; <strong>{volunteer.distanceKm} km</strong> away
                         </span>
+                        {(volunteer.skills?.length > 0) && (
+                          <span className="ri-volunteer-meta" style={{ fontSize: 12 }}>
+                            <Award size={11} /> Skills: <strong>{volunteer.skills.join(", ")}</strong>
+                          </span>
+                        )}
+                        {(volunteer.matchedSkills?.length > 0) && (
+                          <span className="ri-volunteer-meta" style={{ fontSize: 12, color: "#2e7d32" }}>
+                            <CheckCircle2 size={11} /> Matched: <strong>{volunteer.matchedSkills.join(", ")}</strong>
+                          </span>
+                        )}
+                        {volunteer.recommendationScore != null && (
+                          <span className="ri-volunteer-meta" style={{ fontSize: 11, color: "#666" }}>
+                            AI Score: <strong>{(volunteer.recommendationScore * 100).toFixed(0)}%</strong>
+                          </span>
+                        )}
                       </div>
                     </label>
                   ))}
@@ -375,6 +397,12 @@ function ReportIncident() {
                     <strong>Skip &amp; Go Back</strong>
                   </button>
                 </div>
+              </div>
+            ) : submittedIncidentId ? (
+              <div className="ri-empty-guidance" style={{ marginTop: 12 }}>
+                <AlertCircle size={28} className="ud-empty-icon" />
+                <p><strong>No matching volunteers found nearby.</strong></p>
+                <p style={{ fontSize: 12, color: "#888" }}>Try a larger broadcast radius or wait for volunteers to come online.</p>
               </div>
             ) : null}
 
@@ -469,7 +497,7 @@ function ReportIncident() {
             <p>Select one volunteer to notify via SMS.</p>
 
             <div className="ri-volunteer-list" style={{ marginTop: 12 }}>
-              {suggestedVolunteers.map((volunteer) => (
+              {suggestedVolunteers.map((volunteer, idx) => (
                 <label
                   key={volunteer._id}
                   className={`ri-volunteer-item ${selectedVolunteerId === volunteer._id ? "ri-volunteer--selected" : ""}`}
@@ -483,10 +511,27 @@ function ReportIncident() {
                     className="ri-radio"
                   />
                   <div className="ri-volunteer-info">
-                    <strong>{volunteer.fullName}</strong>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      {idx === 0 && (
+                        <span style={{ background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
+                          BEST MATCH
+                        </span>
+                      )}
+                      <strong>{volunteer.fullName}</strong>
+                    </div>
                     <span className="ri-volunteer-meta">
-                      Rating <strong>{volunteer.volunteerRating}/100</strong> &bull; <strong>{volunteer.distanceKm} km</strong>
+                      Rating <strong>{volunteer.volunteerRating}/100</strong> &bull; Trust <strong>{volunteer.trustScore}/10</strong> &bull; <strong>{volunteer.distanceKm} km</strong>
                     </span>
+                    {(volunteer.skills?.length > 0) && (
+                      <span className="ri-volunteer-meta" style={{ fontSize: 12 }}>
+                        Skills: <strong>{volunteer.skills.join(", ")}</strong>
+                      </span>
+                    )}
+                    {(volunteer.matchedSkills?.length > 0) && (
+                      <span className="ri-volunteer-meta" style={{ fontSize: 12, color: "#2e7d32" }}>
+                        Matched: <strong>{volunteer.matchedSkills.join(", ")}</strong>
+                      </span>
+                    )}
                   </div>
                 </label>
               ))}

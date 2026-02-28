@@ -99,7 +99,7 @@ const computeVolunteerSuggestions = async (incident) => {
 
     const llmOutput = await runLLMJson({
       systemPrompt:
-        "You are an emergency dispatcher AI. Pick the best volunteer based on skill match, rating, trust score, and proximity. Strongly prefer candidates with skills matching the incident type. Return strict JSON only.",
+        "You are an emergency dispatcher AI. Pick best volunteer and rank backup candidates. Return strict JSON only.",
       userPrompt: `Incident context: ${JSON.stringify({
         incidentId: incident._id,
         type: incident.type,

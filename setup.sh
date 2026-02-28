@@ -1,69 +1,40 @@
 #!/usr/bin/env bash
-set -e   # stop if any error
+set -e    # exit immediately on error
 
-echo "🚀 Starting Near Help project setup..."
-echo ""
-
-# Get the directory where the script is located
+# ── Navigate to project root ──
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# 1. Install backend dependencies
-if [ -d "backend" ]; then
-  echo "📦 Installing backend dependencies..."
-  cd backend
-  npm install
-  cd ..
-  echo "✅ Backend dependencies installed"
-  echo ""
-else
-  echo "⚠️  Backend directory not found"
-fi
+echo "================================================"
+echo "  NearHelp - Setup"
+echo "================================================"
 
-# 2. Install frontend dependencies
-if [ -d "frontend" ]; then
-  echo "📦 Installing frontend dependencies..."
-  cd frontend
-  npm install
-  cd ..
-  echo "✅ Frontend dependencies installed"
-  echo ""
-else
-  echo "⚠️  Frontend directory not found"
-fi
+# 1. Environment setup (do this first so .env is available during install)
+echo ""
+echo "[1/3] Setting up environment..."
+cp -n .env.example .env 2>/dev/null || true
 
-# 3. Create environment file if not exists
-echo "⚙️  Setting up environment variables..."
-if [ ! -f ".env" ]; then
-  if [ -f ".env.example" ]; then
-    cp .env.example .env
-    echo "✅ Created .env file from .env.example"
-    echo "⚠️  Please update .env file with your actual configuration values"
-  else
-    echo "⚠️  No .env.example found"
-  fi
-else
-  echo "✅ .env file already exists"
-fi
-echo ""
+# Copy env files into sub-projects
+cp -f .env backend/.env 2>/dev/null || true
+grep '^VITE_' .env > frontend/.env 2>/dev/null || true
 
-# 4. Check for MongoDB (optional)
-echo "🔍 Checking for MongoDB..."
-if command -v mongod &> /dev/null; then
-  echo "✅ MongoDB is installed"
-else
-  echo "⚠️  MongoDB not found. Install it from: https://www.mongodb.com/try/download/community"
-  echo "   Or use MongoDB Atlas (cloud): https://www.mongodb.com/atlas"
-fi
-echo ""
+echo "  .env files ready."
 
-# 5. Summary
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "✅ Setup complete!"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+# 2. Install backend dependencies
 echo ""
-echo "Next steps:"
-echo "1. Update your .env file with actual configuration values"
-echo "2. Make sure MongoDB is running (or configure MongoDB Atlas URI)"
-echo "3. Run './web.sh' to start the development servers"
+echo "[2/3] Installing backend dependencies..."
+cd backend
+npm install
+cd ..
+
+# 3. Install frontend dependencies
 echo ""
+echo "[3/3] Installing frontend dependencies..."
+cd frontend
+npm install
+cd ..
+
+echo ""
+echo "================================================"
+echo "  Setup complete. Run ./web.sh to start the app."
+echo "================================================"

@@ -1,57 +1,57 @@
 #!/usr/bin/env bash
-set -e   # exit immediately on error
+set -e    # exit immediately on error
 
-echo "🚀 Starting Near Help Development Servers..."
-echo ""
-
-# Get the directory where the script is located
+# ── Navigate to project root ──
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Check if .env exists
-if [ ! -f ".env" ]; then
-  echo "⚠️  .env file not found!"
-  echo "   Run './setup.sh' first to set up the project"
+# Ensure .env exists
+if [ ! -f .env ]; then
+  echo "ERROR: .env file not found. Run ./setup.sh first."
   exit 1
 fi
 
-# Function to cleanup background processes on exit
+# Copy root .env into backend so dotenv picks it up
+cp -f .env backend/.env 2>/dev/null || true
+
+# Also make a frontend .env with VITE_ vars (Vite needs its own file)
+grep '^VITE_' .env > frontend/.env 2>/dev/null || true
+
+# Cleanup background processes on exit
 cleanup() {
   echo ""
-  echo "🛑 Shutting down servers..."
-  kill 0
+  echo "Shutting down..."
+  kill 0 2>/dev/null
   exit
 }
+trap cleanup SIGINT SIGTERM EXIT
 
-# Trap SIGINT (Ctrl+C) and SIGTERM
-trap cleanup SIGINT SIGTERM
-
-# Start backend server
-echo "🔧 Starting backend server..."
+# 1. Start backend
+echo "Starting backend server..."
 cd backend
 npm start &
 BACKEND_PID=$!
 cd ..
 
-# Give backend a moment to start
-sleep 2
+# Give backend a moment to boot
+sleep 3
 
-# Start frontend server
-echo "🎨 Starting frontend server..."
+# 2. Start frontend dev server
+echo "Starting frontend dev server..."
 cd frontend
-npm run dev &
+npm run dev -- --host &
 FRONTEND_PID=$!
 cd ..
 
+# Wait a moment for Vite to start
+sleep 3
+
 echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "✅ Development servers are running!"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-echo "Backend:  http://localhost:5000"
-echo "Frontend: http://localhost:5173"
-echo ""
-echo "Press Ctrl+C to stop both servers"
+echo "================================================"
+echo "  NearHelp is running!"
+echo "  Frontend:  http://localhost:5173"
+echo "  Backend:   http://localhost:5050"
+echo "================================================"
 echo ""
 
 # Wait for background processes
