@@ -219,89 +219,97 @@ function UserDashboard({ onLogout }) {
       <section className="dashboard-shell user-dashboard-shell">
         <header className="dashboard-topnav user-topnav">
           <div className="dashboard-topnav-left">
-            <span className="badge">NearHelp</span>
+            <span className="badge">
+              <ShieldAlert size={14} style={{ marginRight: 4 }} />
+              <strong>NearHelp</strong>
+            </span>
             <div className="dashboard-title-block">
-              <h2>User Dashboard</h2>
+              <h2><strong>User Dashboard</strong></h2>
               <p>Real-time emergency overview</p>
             </div>
           </div>
           <div className="dashboard-topnav-right">
-            <span className="sos-pill">Active SOS: {incidents.length}</span>
+            <span className="sos-pill"><strong>Active SOS:</strong> {incidents.length}</span>
             <span className="muted-meta">Last sync: 2 mins ago</span>
-            <button type="button" className="dashboard-btn" onClick={onLogout}>
+            <button type="button" className="dashboard-btn logout-btn" onClick={onLogout}>
               Logout
             </button>
           </div>
         </header>
 
-        {quickSosStatus ? <p className="panel-caption">{quickSosStatus}</p> : null}
+        {quickSosStatus ? (
+          <div className="quick-sos-banner">
+            <AlertCircle size={16} />
+            <p>{quickSosStatus}</p>
+          </div>
+        ) : null}
 
         <section className="dashboard-stats-row user-stats-row">
-          <article className="stat-card">
+          <article className="stat-card stat-card--incidents">
             <div className="stat-head">
-              <p className="stat-label">Open Incidents</p>
-              <span className="stat-icon-wrap">
-                <ShieldAlert size={16} />
+              <p className="stat-label"><strong>Open Incidents</strong></p>
+              <span className="stat-icon-wrap stat-icon--red">
+                <ShieldAlert size={18} />
               </span>
             </div>
             <h4>{incidents.length}</h4>
-            <p className="stat-meta">Open incidents around the city</p>
+            <p className="stat-meta"><strong>Open incidents</strong> around the city</p>
           </article>
-          <article className="stat-card">
+          <article className="stat-card stat-card--responders">
             <div className="stat-head">
-              <p className="stat-label">Responders Live</p>
-              <span className="stat-icon-wrap">
-                <Activity size={16} />
+              <p className="stat-label"><strong>Responders Live</strong></p>
+              <span className="stat-icon-wrap stat-icon--green">
+                <Activity size={18} />
               </span>
             </div>
             <h4>{totalResponders}</h4>
-            <p className="stat-meta">Users currently responding</p>
+            <p className="stat-meta"><strong>Users</strong> currently responding</p>
           </article>
-          <article className="stat-card">
+          <article className="stat-card stat-card--eta">
             <div className="stat-head">
-              <p className="stat-label">Avg. ETA</p>
-              <span className="stat-icon-wrap">
-                <Clock3 size={16} />
+              <p className="stat-label"><strong>Avg. ETA</strong></p>
+              <span className="stat-icon-wrap stat-icon--blue">
+                <Clock3 size={18} />
               </span>
             </div>
             <h4>Live</h4>
-            <p className="stat-meta">Real-time SOS feed</p>
+            <p className="stat-meta"><strong>Real-time</strong> SOS feed</p>
           </article>
         </section>
 
         <section className="dashboard-main-grid user-dashboard-grid">
-          <aside className="dashboard-panel filters-panel user-panel">
-            <h3>Filters</h3>
-            <p className="panel-caption">Select incident categories</p>
+          <aside className="dashboard-panel filters-panel user-panel glass-card">
+            <h3><strong>Filters</strong></h3>
+            <p className="panel-caption"><strong>Select</strong> incident categories</p>
             <div className="filter-chip-list">
-              <span className="filter-chip active">Accident</span>
-              <span className="filter-chip">Fire</span>
-              <span className="filter-chip">Health</span>
-              <span className="filter-chip">Robbery</span>
-              <span className="filter-chip">Breakdown</span>
+              <span className="filter-chip active"><strong>Accident</strong></span>
+              <span className="filter-chip"><strong>Fire</strong></span>
+              <span className="filter-chip"><strong>Health</strong></span>
+              <span className="filter-chip"><strong>Robbery</strong></span>
+              <span className="filter-chip"><strong>Breakdown</strong></span>
             </div>
 
             <div className="panel-divider" />
 
-            <p className="panel-caption">Coverage</p>
+            <p className="panel-caption"><strong>Coverage</strong></p>
             <div className="coverage-tags">
               <span>
-                <MapPin size={14} /> Within 2 km
+                <MapPin size={14} /> <strong>Within 2 km</strong>
               </span>
               <span>
-                <MapPin size={14} /> Urban zone
+                <MapPin size={14} /> <strong>Urban zone</strong>
               </span>
               <span>
-                <SlidersHorizontal size={14} /> High priority first
+                <SlidersHorizontal size={14} /> <strong>High priority</strong> first
               </span>
             </div>
 
             <div className="panel-divider" />
 
-            <p className="panel-caption">AI Volunteer Rating</p>
+            <p className="panel-caption"><strong>AI Volunteer Rating</strong></p>
             <div className="report-field mt-2.5">
               <select
-                className="report-input report-select"
+                className="report-input report-select ud-select"
                 value={assessmentType}
                 onChange={(event) => {
                   const type = event.target.value;
@@ -318,10 +326,10 @@ function UserDashboard({ onLogout }) {
             </div>
 
             {assessmentQuestions.map((item) => (
-              <div className="report-field" key={item.id} style={{ marginTop: 8 }}>
-                <span style={{ fontSize: 12 }}>{item.question}</span>
+              <div className="report-field ud-question-field" key={item.id}>
+                <span className="ud-question-label"><strong>{item.question}</strong></span>
                 <textarea
-                  className="report-input report-select"
+                  className="report-input report-select ud-textarea"
                   rows={3}
                   placeholder="Type your response here..."
                   value={assessmentAnswers[item.id] || ""}
@@ -337,7 +345,7 @@ function UserDashboard({ onLogout }) {
 
             <button
               type="button"
-              className="dashboard-btn mt-2.5"
+              className="dashboard-btn ud-ai-btn mt-2.5"
               onClick={submitAssessment}
               disabled={assessmentLoading || !assessmentQuestions.length || !allAssessmentAnswered}
             >
@@ -345,28 +353,28 @@ function UserDashboard({ onLogout }) {
             </button>
 
             {assessmentStatus ? (
-              <p className="panel-caption mt-2">
-                {assessmentStatus}
+              <p className="panel-caption ud-status-msg mt-2">
+                <strong>{assessmentStatus}</strong>
               </p>
             ) : null}
 
             {assessmentResult?.rating !== undefined ? (
-              <p className="panel-caption mt-2.5">
-                Your volunteer rating: {assessmentResult.rating}/100 (Grade {assessmentResult.grade})
-              </p>
+              <div className="ud-rating-result mt-2.5">
+                <strong>Your volunteer rating:</strong> <span className="ud-rating-value">{assessmentResult.rating}/100</span> <span className="ud-rating-grade">(Grade {assessmentResult.grade})</span>
+              </div>
             ) : null}
           </aside>
 
-          <section className="dashboard-panel live-map-panel user-panel">
-            <h3>Live Map</h3>
-            <p className="panel-caption">Auto-updating incidents and responders</p>
+          <section className="dashboard-panel live-map-panel user-panel glass-card">
+            <h3><strong>Live Map</strong></h3>
+            <p className="panel-caption"><strong>Auto-updating</strong> incidents and responders</p>
 
             {latestIncidentSuggestion?.suggestedVolunteers?.length ? (
-              <div className="responder-chat-placeholder" style={{ marginTop: 10 }}>
-                <p className="responder-chat-title">LLM Suggested Volunteers (Latest Incident)</p>
+              <div className="ud-suggestion-box">
+                <p className="responder-chat-title"><strong>LLM Suggested Volunteers</strong> (Latest Incident)</p>
                 {latestIncidentSuggestion.suggestedVolunteers.map((item) => (
                   <p className="responder-chat-line" key={item._id}>
-                    {item.fullName} • Rating {item.volunteerRating}/100 • {item.distanceKm} km
+                    <strong>{item.fullName}</strong> &bull; Rating <strong>{item.volunteerRating}/100</strong> &bull; <strong>{item.distanceKm} km</strong>
                   </p>
                 ))}
               </div>
@@ -377,79 +385,87 @@ function UserDashboard({ onLogout }) {
             </div>
           </section>
 
-          <aside className="dashboard-panel user-panel">
+          <aside className="dashboard-panel user-panel glass-card ud-updates-panel">
             <button
               type="button"
-              className="dashboard-btn report-incident-btn sos-cta-btn"
+              className="ud-sos-button"
               onClick={() => setShowSosOptions(true)}
             >
-              <ShieldAlert size={28} className="sos-cta-icon" /> SOS
+              <ShieldAlert size={24} className="sos-cta-icon" />
+              <strong>SOS</strong>
             </button>
 
-            <h3>Live Updates</h3>
+            <h3><strong>Live Updates</strong></h3>
             <div className="update-list">
               {latestIncidents.length === 0 ? (
-                <div className="update-item">
-                  <p className="update-title">No active incidents</p>
+                <div className="update-item ud-empty-state">
+                  <AlertCircle size={32} className="ud-empty-icon" />
+                  <p className="update-title"><strong>No active incidents</strong></p>
                   <p className="update-text">New SOS requests will show here instantly.</p>
                 </div>
               ) : (
                 latestIncidents.map((incident) => (
-                  <div className="update-item" key={incident._id}>
-                    <p className="update-title">{incident.type?.toUpperCase()} Alert</p>
-                    <p className="update-text">{incident.description || "No additional details"}</p>
-                    <span className="update-time">Responders: {incident.responders?.length || 0}</span>
+                  <div className="update-item ud-incident-card" key={incident._id}>
+                    <div className="ud-incident-header">
+                      <span className={`ud-incident-badge ud-badge--${incident.type || "other"}`}>
+                        <strong>{incident.type?.toUpperCase()}</strong>
+                      </span>
+                      <span className="ud-responder-count">
+                        <Activity size={12} /> <strong>{incident.responders?.length || 0}</strong> responder{(incident.responders?.length || 0) !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <p className="update-text"><strong>{incident.description || "No additional details"}</strong></p>
                     <div className="update-actions">
                       <button
                         type="button"
-                        className="dashboard-btn"
+                        className="dashboard-btn ud-action-respond"
                         onClick={() => handleRespond(incident._id)}
                         disabled={loadingId === incident._id}
                       >
-                        I'm Responding
+                        <strong>I'm Responding</strong>
                       </button>
                       <button
                         type="button"
-                        className="dashboard-btn"
+                        className="dashboard-btn ud-action-resolve"
                         onClick={() => handleResolve(incident._id)}
                         disabled={loadingId === incident._id}
                       >
-                        Mark Resolved
+                        <strong>Mark Resolved</strong>
                       </button>
                       <button
                         type="button"
                         className="dashboard-btn"
                         onClick={() => setActiveChatIncident(incident._id)}
                       >
-                        Responder Chat
+                        <strong>Responder Chat</strong>
                       </button>
                       <button
                         type="button"
-                        className="dashboard-btn"
+                        className="dashboard-btn ud-action-suggest"
                         onClick={() => suggestBestVolunteer(incident._id)}
                         disabled={loadingId === incident._id}
                       >
-                        Suggest Best Volunteer
+                        <strong>Suggest Best Volunteer</strong>
                       </button>
                     </div>
 
                     {bestVolunteerByIncident[incident._id] ? (
-                      <div className="responder-chat-placeholder">
-                        <p className="responder-chat-title">AI Recommended Volunteer</p>
+                      <div className="responder-chat-placeholder ud-volunteer-card">
+                        <p className="responder-chat-title"><strong>AI Recommended Volunteer</strong></p>
                         <p className="responder-chat-line">
-                          {bestVolunteerByIncident[incident._id].fullName} • Rating {bestVolunteerByIncident[incident._id].volunteerRating}/100
+                          <strong>{bestVolunteerByIncident[incident._id].fullName}</strong> &bull; Rating <strong>{bestVolunteerByIncident[incident._id].volunteerRating}/100</strong>
                         </p>
                         <p className="responder-chat-line">
-                          Distance {bestVolunteerByIncident[incident._id].distanceKm} km • Trust {bestVolunteerByIncident[incident._id].trustScore}/10
+                          <strong>Distance</strong> {bestVolunteerByIncident[incident._id].distanceKm} km &bull; <strong>Trust</strong> {bestVolunteerByIncident[incident._id].trustScore}/10
                         </p>
                       </div>
                     ) : null}
 
                     {activeChatIncident === incident._id ? (
-                      <div className="responder-chat-placeholder">
-                        <p className="responder-chat-title">Per-responder chat (demo placeholder)</p>
-                        <p className="responder-chat-line">Broadcaster: Please approach from Gate 2, heavy traffic on main road.</p>
-                        <p className="responder-chat-line">Responder: On my way, ETA 4 mins.</p>
+                      <div className="responder-chat-placeholder ud-chat-box">
+                        <p className="responder-chat-title"><strong>Per-responder chat</strong> (demo placeholder)</p>
+                        <p className="responder-chat-line"><strong>Broadcaster:</strong> Please approach from Gate 2, heavy traffic on main road.</p>
+                        <p className="responder-chat-line"><strong>Responder:</strong> On my way, ETA 4 mins.</p>
                         <p className="responder-chat-meta">Live chat transport can be plugged with socket room by incidentId.</p>
                       </div>
                     ) : null}
@@ -459,35 +475,42 @@ function UserDashboard({ onLogout }) {
             </div>
           </aside>
         </section>
+
+        <footer className="ud-footer">
+          <p><strong>NearHelp</strong> &mdash; Community-powered emergency response</p>
+        </footer>
       </section>
 
       {showSosOptions ? (
         <div className="sos-option-overlay" role="dialog" aria-modal="true">
-          <div className="sos-option-popup">
-            <h3>Select SOS Type</h3>
+          <div className="sos-option-popup ud-sos-popup">
+            <div className="ud-sos-popup-icon">
+              <ShieldAlert size={40} />
+            </div>
+            <h3><strong>Select SOS Type</strong></h3>
             <p>Choose what kind of help request you want to trigger.</p>
             <div className="sos-option-actions">
               <button
                 type="button"
-                className="report-submit"
+                className="report-submit ud-sos-self"
                 onClick={triggerSelfSos}
                 disabled={quickSosLoading}
               >
-                {quickSosLoading ? "Triggering SOS..." : "Help needed for you"}
+                <strong>{quickSosLoading ? "Triggering SOS..." : "Help needed for you"}</strong>
               </button>
               <button
                 type="button"
-                className="report-submit"
+                className="report-submit ud-sos-other"
                 onClick={() => {
                   setShowSosOptions(false);
                   navigate("/report-incident");
                 }}
               >
-                Help needed for someone
+                <strong>Help needed for someone</strong>
               </button>
               <button
                 type="button"
-                className="dashboard-btn"
+                className="dashboard-btn ud-sos-cancel"
                 onClick={() => setShowSosOptions(false)}
               >
                 Cancel
