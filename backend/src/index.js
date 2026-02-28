@@ -6,6 +6,7 @@ import { Server } from "socket.io";
 import { Incident } from "./models/incident.model.js";
 import { User } from "./models/user.model.js";
 import { setIO } from "./socketInstance.js";
+import { registerUserSocket, removeUserSocket } from "./socketInstance.js";
 import { sendEmergencySMS } from "./utils/alertSMS.js";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -55,11 +56,20 @@ function getDistance(lat1, lon1, lat2, lon2) {
 io.on("connection", (socket) => {
   console.log("🟢 Connected:", socket.id);
 
+<<<<<<< HEAD
   // store user location (in-memory + persist to MongoDB)
   socket.on("REGISTER_LOCATION", async ({ lat, lng, userId }) => {
     if (!lat || !lng) return;
 
     users.set(socket.id, { lat, lng, userId });
+=======
+  // store user location + register userId↔socketId mapping
+  socket.on("REGISTER_LOCATION", ({ lat, lng, userId }) => {
+    if (!lat || !lng) return;
+
+    users.set(socket.id, { lat, lng, userId });
+    if (userId) registerUserSocket(userId, socket.id);
+>>>>>>> 981559b (Implement chat room functionality for incident creators and responders)
     console.log("📍 Users online:", users.size);
 
     // Persist location to database so $near queries work
@@ -190,12 +200,15 @@ io.on("connection", (socket) => {
     io.emit("INCIDENT_RESPONDER", payload);
   });
 
-  // ── Per-incident chat (broadcast to all – frontend filters by incidentId) ──
+  // ── Per-incident chat rooms ──
+  // Client emits this to join the chat room for an incident
   socket.on("JOIN_INCIDENT_CHAT", ({ incidentId, userName }) => {
     if (!incidentId) return;
-    console.log(`💬 ${userName || socket.id} joined chat for incident ${incidentId}`);
-    // Broadcast join to ALL connected clients so everyone sees it
-    io.emit("CHAT_MESSAGE", {
+    const room = `chat:${incidentId}`;
+    socket.join(room);
+    console.log(`💬 ${userName || socket.id} joined room ${room}`);
+    // Announce to everyone in the room
+    io.to(room).emit("CHAT_MESSAGE", {
       incidentId,
       sender: "System",
       message: `${userName || "A responder"} joined the chat`,
@@ -204,10 +217,15 @@ io.on("connection", (socket) => {
     });
   });
 
+  socket.on("LEAVE_INCIDENT_CHAT", ({ incidentId }) => {
+    if (!incidentId) return;
+    socket.leave(`chat:${incidentId}`);
+  });
+
   socket.on("SEND_CHAT_MESSAGE", ({ incidentId, sender, message }) => {
     if (!incidentId || !message) return;
-    // Broadcast to ALL connected clients (frontend filters by incidentId)
-    io.emit("CHAT_MESSAGE", {
+    // Send to everyone in the incident's chat room
+    io.to(`chat:${incidentId}`).emit("CHAT_MESSAGE", {
       incidentId,
       sender: sender || "Anonymous",
       message,
@@ -224,6 +242,7 @@ io.on("connection", (socket) => {
   // disconnect
   socket.on("disconnect", () => {
     users.delete(socket.id);
+    removeUserSocket(socket.id);
     console.log("🔴 Disconnected:", socket.id);
   });
 });

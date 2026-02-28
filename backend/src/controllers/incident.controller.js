@@ -6,7 +6,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { runLLMJson } from "../utils/llm.js";
 import { sendEmergencySMS } from "../utils/alertSMS.js";
-import { getIO } from "../socketInstance.js";
+import { getIO, joinUserToRoom } from "../socketInstance.js";
 
 const getDistanceKm = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -390,6 +390,8 @@ export const createIncident = asyncHandler(async (req, res) => {
   try {
     const io = getIO();
     io.emit("INCIDENT_UPDATED", incident);
+    // Auto-join the SOS creator to the chat room for this incident
+    joinUserToRoom(req.user._id, `chat:${incident._id}`);
   } catch {}
 
   return res
@@ -476,6 +478,16 @@ export const respondToIncident = asyncHandler(async (req, res) => {
       userId: String(req.user._id),
       fullName: req.user.fullName,
       respondersCount: populated.responders.length,
+    });
+    // Auto-join the responder to the chat room server-side
+    joinUserToRoom(req.user._id, `chat:${incidentId}`);
+    // Announce to the room that this responder joined
+    io.to(`chat:${incidentId}`).emit("CHAT_MESSAGE", {
+      incidentId,
+      sender: "System",
+      message: `${req.user.fullName || "A responder"} joined the chat`,
+      timestamp: new Date().toISOString(),
+      isSystem: true,
     });
   } catch {}
 

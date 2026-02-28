@@ -55,6 +55,30 @@ function UserDashboard({ onLogout }) {
     return () => clearInterval(timer);
   }, [fetchOpenIncidents]);
 
+  // Auto-join chat rooms for incidents the current user created or is responding to
+  useEffect(() => {
+    if (!incidents.length) return;
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    if (!user?._id) return;
+    const uid = String(user._id);
+
+    incidents.forEach((inc) => {
+      const incId = inc._id || inc.id;
+      if (!incId) return;
+      // Check if user is creator
+      const isCreator =
+        String(inc.createdBy?._id || inc.createdBy) === uid;
+      // Check if user is a responder
+      const isResponder = (inc.responders || []).some(
+        (r) => String(r.userId?._id || r.userId) === uid
+      );
+      if ((isCreator || isResponder) && !joinedRoomsRef.current.has(incId)) {
+        socket.emit("JOIN_INCIDENT_CHAT", { incidentId: incId, userName: user.fullName || "User" });
+        joinedRoomsRef.current.add(incId);
+      }
+    });
+  }, [incidents]);
+
   const getUserName = useCallback(() => {
     try {
       const raw = localStorage.getItem("user");

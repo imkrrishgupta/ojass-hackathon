@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { axiosInstance } from "../api/axios";
-import { emitIncidentUpdate } from "../socket";
+import { emitIncidentUpdate, socket } from "../socket";
 import { ShieldAlert, AlertCircle, Send, ArrowLeft, CheckCircle2, MapPin, Radio, FileText, Users, Heart, Building2, Award } from "lucide-react";
 
 const getStoredUser = () => {
@@ -73,6 +73,15 @@ function ReportIncident() {
 
       const incident = response.data?.data;
       setSubmittedIncidentId(incident?._id || "");
+
+      // Auto-join the chat room for this incident so the SOS creator can chat
+      if (incident?._id) {
+        const user = getStoredUser();
+        socket.emit("JOIN_INCIDENT_CHAT", {
+          incidentId: incident._id,
+          userName: user?.fullName || "SOS Creator",
+        });
+      }
 
       // Capture skilled responders and emergency services from SOS response
       setSkilledResponders(incident?.skilledResponders || []);
