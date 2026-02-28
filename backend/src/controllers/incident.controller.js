@@ -5,6 +5,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { runLLMJson } from "../utils/llm.js";
 import { sendEmergencySMS } from "../utils/alertSMS.js";
+import { getIO } from "../socketInstance.js";
 
 const getDistanceKm = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -202,9 +203,82 @@ export const createIncident = asyncHandler(async (req, res) => {
     },
   });
 
+  // --- Auto-dispatch best volunteer ---
+  let dispatchInfo = null;
+  try {
+    const suggestions = await computeVolunteerSuggestions(incident);
+    const best = suggestions.recommendedVolunteer;
+
+    if (best && best._id) {
+      // Add as auto-responder
+      incident.responders.push({ userId: best._id });
+      incident.autoDispatch = {
+        volunteerId: best._id,
+        volunteerName: best.fullName || "",
+        volunteerPhone: best.phone || "",
+        distanceKm: best.distanceKm ?? null,
+        rating: best.volunteerRating ?? null,
+        dispatchedAt: new Date(),
+        status: "dispatched",
+        reason: suggestions.reason || "Auto-dispatched by system",
+      };
+      incident.suggestedVolunteers = suggestions.suggestedVolunteers
+        .map((v) => v._id)
+        .filter(Boolean);
+      await incident.save();
+
+      dispatchInfo = {
+        volunteerId: String(best._id),
+        volunteerName: best.fullName,
+        volunteerPhone: best.phone,
+        distanceKm: best.distanceKm,
+        rating: best.volunteerRating,
+        reason: suggestions.reason,
+        allSuggested: suggestions.suggestedVolunteers,
+      };
+
+      // Notify dispatched volunteer via socket
+      try {
+        const io = getIO();
+        if (io) {
+          io.emit("VOLUNTEER_DISPATCHED", {
+            incidentId: incident._id,
+            incidentType: incident.type,
+            description: incident.description,
+            volunteerId: String(best._id),
+            volunteerName: best.fullName,
+            distanceKm: best.distanceKm,
+            lat: parsedLat,
+            lng: parsedLng,
+          });
+        }
+      } catch {}
+
+      // Send SMS to dispatched volunteer
+      try {
+        if (best.phone) {
+          await sendEmergencySMS({
+            phones: [best.phone],
+            message: `NEARHELP AUTO-DISPATCH: You have been assigned to a ${type.toUpperCase()} incident. ${String(description || "Emergency help needed").slice(0, 80)}. Open app to navigate.`,
+          });
+        }
+      } catch {}
+    }
+  } catch (err) {
+    console.error("[AutoDispatch] Could not auto-dispatch:", err.message);
+  }
+
+  const responseData = {
+    ...incident.toObject(),
+    dispatchInfo,
+  };
+
   return res
     .status(201)
-    .json(new ApiResponse(201, incident, "SOS broadcasted successfully"));
+    .json(new ApiResponse(201, responseData, dispatchInfo
+      ? `SOS broadcasted — ${dispatchInfo.volunteerName} auto-dispatched`
+      : "SOS broadcasted successfully"
+    ));
 });
 
 export const listOpenIncidents = asyncHandler(async (_, res) => {

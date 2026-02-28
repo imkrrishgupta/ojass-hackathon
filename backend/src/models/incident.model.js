@@ -74,6 +74,24 @@ const incidentSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    autoDispatch: {
+      volunteerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+      volunteerName: { type: String, default: "" },
+      volunteerPhone: { type: String, default: "" },
+      distanceKm: { type: Number, default: null },
+      rating: { type: Number, default: null },
+      dispatchedAt: { type: Date, default: null },
+      status: {
+        type: String,
+        enum: ["dispatched", "accepted", "declined", "none"],
+        default: "none",
+      },
+      reason: { type: String, default: "" },
+    },
     severity: {
       type: String,
       enum: ["low", "medium", "high"],

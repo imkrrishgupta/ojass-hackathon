@@ -71,13 +71,18 @@ function ReportIncident() {
       const incident = response.data?.data;
       setSubmittedIncidentId(incident?._id || "");
 
-      let suggestedList = [];
+      // Auto-dispatch info comes directly from create response now
+      const autoDispatchInfo = incident?.dispatchInfo;
+      let suggestedList = autoDispatchInfo?.allSuggested || [];
 
-      try {
-        const suggestResponse = await axiosInstance.get(`/incidents/${incident?._id}/best-volunteer`);
-        suggestedList = suggestResponse.data?.data?.suggestedVolunteers || [];
-      } catch {
-        suggestedList = [];
+      // Fallback to explicit best-volunteer call if no auto-dispatch
+      if (!suggestedList.length) {
+        try {
+          const suggestResponse = await axiosInstance.get(`/incidents/${incident?._id}/best-volunteer`);
+          suggestedList = suggestResponse.data?.data?.suggestedVolunteers || [];
+        } catch {
+          suggestedList = [];
+        }
       }
 
       setSuggestedVolunteers(suggestedList);
@@ -108,9 +113,13 @@ function ReportIncident() {
         ? ` Suggested: ${suggestedList.map((item) => item.fullName).join(", ")}.`
         : "";
 
+      const dispatchText = autoDispatchInfo
+        ? ` Auto-dispatched: ${autoDispatchInfo.volunteerName} (${autoDispatchInfo.distanceKm?.toFixed(1) ?? "?"}km, rating ${autoDispatchInfo.rating ?? "?"}/100).`
+        : "";
+
       setStatus({
         type: "success",
-        message: `Incident reported successfully.${namesText} Select one volunteer to send SMS.`,
+        message: `Incident reported successfully.${dispatchText}${namesText} Select one volunteer to send SMS.`,
       });
     } catch (error) {
       setStatus({
