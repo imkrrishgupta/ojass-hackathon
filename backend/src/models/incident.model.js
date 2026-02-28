@@ -9,7 +9,7 @@ const incidentSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["car_breakdown", "gas_leak", "urgent_help", "medical", "others"],
+      enum: ["Fire", "Road", "Theft", "Health", "Other"],
       required: true,
     },
     description: {
