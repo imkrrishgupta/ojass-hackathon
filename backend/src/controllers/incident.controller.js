@@ -220,7 +220,7 @@ export const createIncident = asyncHandler(async (req, res) => {
   try {
     const skillKeywords = {
       medical: ["doctor", "nurse", "paramedic", "emt", "cpr", "first aid", "surgeon", "pharmacist"],
-      gas_leak: ["firefighter", "hazmat", "engineer"],
+      gas_leak: ["firefighter", "engineer"],
       car_breakdown: ["mechanic", "electrician", "engineer"],
       urgent_help: ["cpr", "first aid", "paramedic", "emt", "doctor", "nurse"],
       others: [],

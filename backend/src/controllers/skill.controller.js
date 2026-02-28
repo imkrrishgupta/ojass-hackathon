@@ -6,7 +6,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 // Predefined skill categories
 const SKILL_CATEGORIES = {
   medical: ["CPR", "First Aid", "Doctor", "Nurse", "Paramedic", "EMT", "Surgeon", "Pharmacist"],
-  rescue: ["Firefighter", "Lifeguard", "Search & Rescue", "Disaster Response", "Hazmat"],
+  rescue: ["Firefighter", "Lifeguard", "Search & Rescue", "Disaster Response"],
   technical: ["Mechanic", "Electrician", "Plumber", "Engineer", "IT Support"],
   security: ["Police", "Security Guard", "Self-Defense", "Crowd Control"],
   support: ["Counselor", "Translator", "Sign Language", "Crisis Negotiator", "Social Worker"],
