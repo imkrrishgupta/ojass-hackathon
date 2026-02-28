@@ -71,9 +71,10 @@ io.on("connection", (socket) => {
       if (!lat || !lng || !type) return;
 
       // severity auto
+      const typeLower = String(type).toLowerCase();
       let severity = "low";
-      if (type === "gas_leak" || type === "medical") severity = "high";
-      if (type === "urgent_help") severity = "medium";
+      if (typeLower === "health" || typeLower === "fire") severity = "high";
+      if (typeLower === "road") severity = "medium";
 
       // save incident
       const incident = await Incident.create({

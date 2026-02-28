@@ -191,6 +191,11 @@ export const createIncident = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid latitude or longitude");
   }
 
+  const typeLower = String(type).toLowerCase();
+  const severity =
+    typeLower === "health" || typeLower === "fire" ? "high" :
+    typeLower === "road" ? "medium" : "low";
+
   const incident = await Incident.create({
     createdBy: req.user._id,
     type,
@@ -202,6 +207,7 @@ export const createIncident = asyncHandler(async (req, res) => {
       type: "Point",
       coordinates: [parsedLng, parsedLat],
     },
+    severity,
   });
 
   // --- Auto-dispatch best volunteer ---
