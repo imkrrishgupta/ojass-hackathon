@@ -107,15 +107,6 @@ function ReportIncident() {
         })
       );
 
-      emitIncidentUpdate({
-        _id: incident?._id,
-        type,
-        description: description.trim(),
-        lat: location.lat,
-        lng: location.lng,
-        radiusMeters,
-      });
-
       const namesText = suggestedList.length
         ? ` Suggested: ${suggestedList.map((item) => item.fullName).join(", ")}.`
         : "";
