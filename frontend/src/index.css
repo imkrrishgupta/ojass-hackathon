@@ -650,6 +650,17 @@ a:hover {
   border-radius: 8px;
 }
 
+/* 🔴 Pulsing animation for incident markers */
+.pulsing-marker {
+  animation: pulse-marker 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-marker {
+  0%   { transform: scale(1);   filter: drop-shadow(0 0 0 rgba(229, 57, 53, 0)); }
+  50%  { transform: scale(1.2); filter: drop-shadow(0 0 10px rgba(229, 57, 53, 0.6)); }
+  100% { transform: scale(1);   filter: drop-shadow(0 0 0 rgba(229, 57, 53, 0)); }
+}
+
 .info-list {
   margin-top: 12px;
   display: flex;
@@ -902,6 +913,13 @@ a:hover {
   margin-top: 7px;
   font-size: 11px;
   color: #75839a;
+}
+
+.update-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .responder-chat-placeholder {

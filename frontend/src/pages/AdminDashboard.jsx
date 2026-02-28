@@ -3,13 +3,6 @@ import MapView from "../components/MapView";
 import { Activity, Clock3, MapPin, ShieldAlert, SlidersHorizontal } from "lucide-react";
 import { axiosInstance } from "../api/axios.js";
 
-const adminPoints = [
-  { id: "a-1", lat: 28.633, lng: 77.216, label: "High Priority Cluster" },
-  { id: "a-2", lat: 28.612, lng: 77.195, label: "Responder Hub - West Zone" },
-  { id: "a-3", lat: 28.602, lng: 77.248, label: "Pending Escalation Case" },
-  { id: "a-4", lat: 28.586, lng: 77.214, label: "SLA Breach Alert" },
-];
-
 function AdminDashboard({ onLogout }) {
   const [summary, setSummary] = useState({ openCount: 0, resolvedCount: 0, incidents: [] });
 
@@ -161,7 +154,7 @@ function AdminDashboard({ onLogout }) {
             <h3>Live Map</h3>
             <p className="panel-caption">Control-room view with live incidents</p>
             <div className="map-box">
-	              <MapView points={adminPoints} mapHeight={360} showRadius={false} />
+	              <MapView mapHeight={360} showRadius={false} radiusMeters={50000} />
             </div>
           </section>
 

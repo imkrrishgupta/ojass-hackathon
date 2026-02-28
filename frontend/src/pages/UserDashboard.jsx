@@ -5,12 +5,6 @@ import { Activity, Clock3, MapPin, ShieldAlert, SlidersHorizontal, AlertCircle }
 import { axiosInstance } from "../api/axios.js";
 import { emitIncidentUpdate } from "../socket.js";
 
-const userPoints = [
-  { id: "u-1", lat: 28.621, lng: 77.219, label: "Accident - Connaught Place" },
-  { id: "u-2", lat: 28.608, lng: 77.231, label: "Responder Unit A-12" },
-  { id: "u-3", lat: 28.594, lng: 77.208, label: "Fire Alert - Mandi House" },
-];
-
 function UserDashboard({ onLogout }) {
   const navigate = useNavigate();
   const [incidents, setIncidents] = useState([]);
@@ -379,7 +373,7 @@ function UserDashboard({ onLogout }) {
             ) : null}
 
             <div className="map-box">
-              <MapView points={userPoints} mapHeight={360} />
+              <MapView mapHeight={360} />
             </div>
           </section>
 
@@ -405,7 +399,7 @@ function UserDashboard({ onLogout }) {
                     <p className="update-title">{incident.type?.toUpperCase()} Alert</p>
                     <p className="update-text">{incident.description || "No additional details"}</p>
                     <span className="update-time">Responders: {incident.responders?.length || 0}</span>
-                    <div className="flex gap-2 mt-2.5">
+                    <div className="update-actions">
                       <button
                         type="button"
                         className="dashboard-btn"
