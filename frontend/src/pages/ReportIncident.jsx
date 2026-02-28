@@ -311,6 +311,24 @@ function ReportIncident() {
               </div>
             )}
 
+            {guidance?.emergencySummary ? (
+              <div className="ri-summary-box">
+                <p className="ri-guidance-title">
+                  <FileText size={14} /> <strong>Emergency Summary (read to services)</strong>
+                </p>
+                <div className="ri-summary-text">{guidance.emergencySummary}</div>
+              </div>
+            ) : null}
+
+            {guidance?.debriefPrompt ? (
+              <div className="ri-debrief-box">
+                <p className="ri-guidance-title">
+                  <Heart size={14} /> <strong>Post-Resolution Debrief</strong>
+                </p>
+                <div className="ri-debrief-text">{guidance.debriefPrompt}</div>
+              </div>
+            ) : null}
+
             {suggestedVolunteers.length > 0 ? (
               <div className="ri-volunteers-box">
                 <p className="ri-guidance-title">

@@ -2799,3 +2799,28 @@ a:hover {
     flex-direction: column;
   }
 }
+
+/* Emergency summary & debrief boxes */
+.ri-summary-box,
+.ri-debrief-box {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+}
+.ri-summary-box {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(37, 99, 235, 0.02));
+  border-color: rgba(59, 130, 246, 0.2);
+}
+.ri-debrief-box {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.06), rgba(139, 92, 246, 0.02));
+  border-color: rgba(168, 85, 247, 0.2);
+}
+.ri-summary-text,
+.ri-debrief-text {
+  font-size: 0.84rem;
+  color: #334155;
+  line-height: 1.55;
+  margin-top: 6px;
+  white-space: pre-wrap;
+}
