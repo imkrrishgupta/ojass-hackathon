@@ -56,20 +56,12 @@ function getDistance(lat1, lon1, lat2, lon2) {
 io.on("connection", (socket) => {
   console.log("🟢 Connected:", socket.id);
 
-<<<<<<< HEAD
-  // store user location (in-memory + persist to MongoDB)
+  // store user location + register userId↔socketId mapping (persist to MongoDB)
   socket.on("REGISTER_LOCATION", async ({ lat, lng, userId }) => {
     if (!lat || !lng) return;
 
     users.set(socket.id, { lat, lng, userId });
-=======
-  // store user location + register userId↔socketId mapping
-  socket.on("REGISTER_LOCATION", ({ lat, lng, userId }) => {
-    if (!lat || !lng) return;
-
-    users.set(socket.id, { lat, lng, userId });
     if (userId) registerUserSocket(userId, socket.id);
->>>>>>> 981559b (Implement chat room functionality for incident creators and responders)
     console.log("📍 Users online:", users.size);
 
     // Persist location to database so $near queries work
