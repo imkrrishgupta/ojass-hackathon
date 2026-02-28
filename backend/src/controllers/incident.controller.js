@@ -51,14 +51,23 @@ const computeVolunteerSuggestions = async (incident) => {
   }
 
   const incidentType = incident.type;
+  const skillKeywordsMap = {
+    Health: ["doctor", "nurse", "paramedic", "emt", "cpr", "first aid", "surgeon", "pharmacist", "health"],
+    Fire: ["firefighter", "engineer", "cpr", "first aid", "fire"],
+    Road: ["mechanic", "electrician", "engineer", "first aid", "paramedic", "road"],
+    Theft: ["security", "police", "self defense", "theft"],
+    Other: ["cpr", "first aid", "paramedic", "emt", "doctor", "nurse"],
+  };
+  const relevantKeywords = skillKeywordsMap[incidentType] || [];
+
   const scored = candidates.map((candidate) => {
     const [candidateLng, candidateLat] = candidate.location?.coordinates || [0, 0];
     const distanceKm = getDistanceKm(incidentLat, incidentLng, candidateLat, candidateLng);
     const maxKm = (incident.radiusMeters || 2000) / 1000;
     const proximityScore = Math.max(0, 1 - distanceKm / Math.max(maxKm, 0.5));
 
-    const skillMatch = (candidate.skills || []).some((skill) =>
-      String(skill).toLowerCase().includes(String(incidentType).toLowerCase())
+    const skillMatch = relevantKeywords.length > 0 && (candidate.skills || []).some((skill) =>
+      relevantKeywords.some((kw) => String(skill).toLowerCase().includes(kw))
     )
       ? 1
       : 0.4;
@@ -168,7 +177,7 @@ const computeVolunteerSuggestions = async (incident) => {
 
       return Number(a.distanceKm || 0) - Number(b.distanceKm || 0);
     })
-    .slice(0, 3);
+    .slice(0, 10);
 
   return {
     recommendedVolunteer: suggestedVolunteers[0] || null,
@@ -219,11 +228,11 @@ export const createIncident = asyncHandler(async (req, res) => {
   // ── Auto-surface skilled responders with matching skills ──
   try {
     const skillKeywords = {
-      medical: ["doctor", "nurse", "paramedic", "emt", "cpr", "first aid", "surgeon", "pharmacist"],
-      gas_leak: ["firefighter", "engineer"],
-      car_breakdown: ["mechanic", "electrician", "engineer"],
-      urgent_help: ["cpr", "first aid", "paramedic", "emt", "doctor", "nurse"],
-      others: [],
+      Health: ["doctor", "nurse", "paramedic", "emt", "cpr", "first aid", "surgeon", "pharmacist", "health"],
+      Fire: ["firefighter", "engineer", "cpr", "first aid", "fire"],
+      Road: ["mechanic", "electrician", "engineer", "first aid", "paramedic", "road"],
+      Theft: ["security", "police", "self defense", "theft"],
+      Other: ["cpr", "first aid", "paramedic", "emt", "doctor", "nurse"],
     };
     const relevantSkills = skillKeywords[type] || [];
 
