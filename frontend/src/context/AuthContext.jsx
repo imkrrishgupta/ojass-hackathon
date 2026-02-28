@@ -1,9 +1,28 @@
 import { useContext, useEffect, useState, createContext } from 'react'
 import api from "../api/axios.js"
+import { axiosInstance } from "../api/axios.js"
 import { useNavigate } from 'react-router-dom';
 
 const UserContext = createContext();
 const API = api;
+
+// Persist user's live location to the database so geo-queries ($near) work
+const persistLocationToDB = () => {
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      try {
+        await axiosInstance.patch("/users/location", {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+        console.log("[Auth] Location persisted to DB:", pos.coords.latitude, pos.coords.longitude);
+      } catch (err) {
+        console.warn("[Auth] Failed to persist location:", err.message);
+      }
+    },
+    (err) => console.warn("[Auth] Geolocation denied:", err.message)
+  );
+};
 
 const AuthContext = ({children}) => {
     const [user, setUser] = useState(null);
@@ -17,6 +36,8 @@ const AuthContext = ({children}) => {
 
           if (response.data.success){  // Means user is authenticated
             setUser(response.data.data.user);
+            // Persist location to DB so volunteer geo-queries work
+            persistLocationToDB();
           }
 
         } catch (error) {
@@ -37,6 +58,7 @@ const AuthContext = ({children}) => {
 
     const login = async (user) => {
       setUser(user);
+      persistLocationToDB();
     }
 
     const logout = async () => {

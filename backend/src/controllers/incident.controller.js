@@ -41,6 +41,8 @@ const computeVolunteerSuggestions = async (incident) => {
     },
   }).select("fullName phone trustScore volunteerRating skills location");
 
+  console.log(`[VolunteerSuggestions] Incident ${incident._id} type=${incident.type} coords=[${incidentLng},${incidentLat}] radius=${incident.radiusMeters}m — found ${candidates.length} candidate(s)`);
+
   if (!candidates.length) {
     return {
       recommendedVolunteer: null,
@@ -178,6 +180,8 @@ const computeVolunteerSuggestions = async (incident) => {
       return Number(a.distanceKm || 0) - Number(b.distanceKm || 0);
     })
     .slice(0, 10);
+
+  console.log(`[VolunteerSuggestions] Returning ${suggestedVolunteers.length} volunteers — top: ${suggestedVolunteers[0]?.fullName || 'none'} (${suggestedVolunteers[0]?.distanceKm}km)`);
 
   return {
     recommendedVolunteer: suggestedVolunteers[0] || null,

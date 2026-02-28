@@ -55,12 +55,28 @@ function getDistance(lat1, lon1, lat2, lon2) {
 io.on("connection", (socket) => {
   console.log("🟢 Connected:", socket.id);
 
-  // store user location
-  socket.on("REGISTER_LOCATION", ({ lat, lng }) => {
+  // store user location (in-memory + persist to MongoDB)
+  socket.on("REGISTER_LOCATION", async ({ lat, lng, userId }) => {
     if (!lat || !lng) return;
 
-    users.set(socket.id, { lat, lng });
+    users.set(socket.id, { lat, lng, userId });
     console.log("📍 Users online:", users.size);
+
+    // Persist location to database so $near queries work
+    if (userId) {
+      try {
+        await User.findByIdAndUpdate(userId, {
+          location: {
+            type: "Point",
+            coordinates: [Number(lng), Number(lat)],
+          },
+          lastSeen: new Date(),
+        });
+        console.log(`📍 DB location updated for user ${userId}: [${lng}, ${lat}]`);
+      } catch (err) {
+        console.error("📍 Failed to persist location:", err.message);
+      }
+    }
   });
 
   // create incident
