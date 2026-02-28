@@ -2,10 +2,12 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { User } from "./models/user.model.js";
 
-dotenv.config({ path: "./.env" });
+dotenv.config({
+    path: "./.env" 
+});
 
-const ADMIN_PHONE = process.env.ADMIN_PHONE || "9625113505";
-const ADMIN_NAME = process.env.ADMIN_NAME || "NearHelp Admin";
+const ADMIN_PHONE = process.env.ADMIN_PHONE;
+const ADMIN_NAME = process.env.ADMIN_NAME;
 
 async function seedAdmin() {
   try {
