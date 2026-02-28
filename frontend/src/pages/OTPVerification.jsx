@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { axiosInstance } from "../api/axios.js";
+import { KeyRound, CheckCircle2, RefreshCw, ArrowLeft } from "lucide-react";
 
 const ADMIN_PHONE = "9625113505";
 const normalizePhone = (value) => String(value ?? "").replace(/\D/g, "").slice(-10);
@@ -106,8 +107,11 @@ function OTPVerification({ phone, onSuccess, onBack }) {
   return (
     <section className="auth-body">
       <form className="auth-card" onSubmit={handleSubmit}>
-        <h2>Verify OTP</h2>
-        <p className="subtitle">Enter the 6-digit code sent to +91{phone}</p>
+        <div className="auth-card-icon">
+          <KeyRound size={28} />
+        </div>
+        <h2><strong>Verify OTP</strong></h2>
+        <p className="subtitle"><strong>Enter the 6-digit code</strong> sent to +91{phone}</p>
 
         <div className="otp-input-wrap">
           {otp.map((digit, index) => (
@@ -125,10 +129,11 @@ function OTPVerification({ phone, onSuccess, onBack }) {
           ))}
         </div>
 
-        {error && <p className="form-error">{error}</p>}
+        {error && <p className="form-error"><strong>{error}</strong></p>}
 
         <button type="submit" className="primary-btn" disabled={loading || otp.some((d) => !d)}>
-          {loading ? "Verifying..." : "Verify OTP"}
+          <CheckCircle2 size={16} style={{ marginRight: 6 }} />
+          <strong>{loading ? "Verifying..." : "Verify OTP"}</strong>
         </button>
 
         <div className="otp-actions">
@@ -138,15 +143,17 @@ function OTPVerification({ phone, onSuccess, onBack }) {
             onClick={handleResendOtp}
             disabled={!canResend}
           >
-            {canResend ? "Resend OTP" : `Resend in ${resendTimer}s`}
+            <RefreshCw size={14} style={{ marginRight: 6 }} />
+            <strong>{canResend ? "Resend OTP" : `Resend in ${resendTimer}s`}</strong>
           </button>
           <button type="button" onClick={onBack} className="back-btn">
-            Change Number
+            <ArrowLeft size={14} style={{ marginRight: 6 }} />
+            <strong>Change Number</strong>
           </button>
         </div>
 
         <p className="terms-text">
-          By continuing, I agree to the <a href="#">Terms of Service</a>
+          By continuing, I agree to the <a href="#"><strong>Terms of Service</strong></a>
         </p>
       </form>
     </section>

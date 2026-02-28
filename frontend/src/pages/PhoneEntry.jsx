@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { axiosInstance } from "../api/axios.js";
+import { Phone, ArrowRight, UserPlus } from "lucide-react";
 
 const phoneRegex = /^[0-9]{10}$/; // 10-digit phone number
 
@@ -45,11 +46,14 @@ function PhoneEntry({ onContinue, onCreateAccount }) {
   return (
     <section className="auth-body">
       <form className="auth-card" onSubmit={handleSubmit}>
-        <h2>Login or Create Account</h2>
-        <p className="subtitle">Enter your phone number to proceed</p>
+        <div className="auth-card-icon">
+          <Phone size={28} />
+        </div>
+        <h2><strong>Login or Create Account</strong></h2>
+        <p className="subtitle"><strong>Enter your phone number</strong> to proceed</p>
 
         <div className="phone-input-wrap">
-          <span className="country-code">+91</span>
+          <span className="country-code"><strong>+91</strong></span>
           <input
             type="tel"
             value={phone}
@@ -60,23 +64,25 @@ function PhoneEntry({ onContinue, onCreateAccount }) {
           />
         </div>
 
-        {error && <p className="form-error">{error}</p>}
+        {error && <p className="form-error"><strong>{error}</strong></p>}
 
         <button
           type="submit"
           className="primary-btn"
           disabled={!phoneRegex.test(phone) || loading}
         >
-          {loading ? "Sending OTP..." : "Continue"}
+          <strong>{loading ? "Sending OTP..." : "Continue"}</strong>
+          {!loading && <ArrowRight size={16} style={{ marginLeft: 6 }} />}
         </button>
 
         <p className="terms-text">
-          By continuing, I agree to the <a href="#">Terms of Service</a>
+          By continuing, I agree to the <a href="#"><strong>Terms of Service</strong></a>
         </p>
 
         <div className="auth-secondary-actions">
           <button type="button" className="link-btn" onClick={onCreateAccount}>
-            Create New Account
+            <UserPlus size={14} style={{ marginRight: 4 }} />
+            <strong>Create New Account</strong>
           </button>
         </div>
       </form>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { axiosInstance } from "../api/axios.js";
-import nearhelpLogo from "../assets/nearhelp-logo.svg";
+import { ShieldAlert, UserPlus, ArrowLeft, Upload } from "lucide-react";
 
 const phoneRegex = /^[0-9]{10}$/;
 
@@ -40,7 +40,6 @@ function Register() {
       formData.append("name", name.trim());
       formData.append("phone", phone);
 
-      // 🟢 avatar optional
       if (avatar) {
         const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
 
@@ -101,17 +100,24 @@ function Register() {
       <header className="auth-topbar">
         <div className="auth-topbar-inner">
           <div className="auth-logo-wrap">
-            <img className="auth-logo" src={nearhelpLogo} alt="NearHelp" />
+            <span className="auth-brand">
+              <ShieldAlert size={20} />
+              <strong>NearHelp</strong>
+            </span>
           </div>
         </div>
       </header>
 
       <section className="auth-body">
         <form className="auth-card" onSubmit={handleSubmit}>
-          <h2>Create New Account</h2>
+          <div className="auth-card-icon">
+            <UserPlus size={28} />
+          </div>
+          <h2><strong>Create New Account</strong></h2>
+          <p className="subtitle"><strong>Join NearHelp</strong> to help your community</p>
 
           <label className="input-label" htmlFor="register-name">
-            Name
+            <strong>Name</strong>
           </label>
           <input
             id="register-name"
@@ -124,10 +130,10 @@ function Register() {
           />
 
           <label className="input-label" htmlFor="register-phone">
-            Phone Number
+            <strong>Phone Number</strong>
           </label>
           <div className="phone-input-wrap">
-            <span className="country-code">+91</span>
+            <span className="country-code"><strong>+91</strong></span>
             <input
               id="register-phone"
               type="tel"
@@ -140,7 +146,8 @@ function Register() {
           </div>
 
           <label className="input-label" htmlFor="register-avatar">
-            Avatar (optional)
+            <Upload size={14} style={{ marginRight: 4 }} />
+            <strong>Avatar (optional)</strong>
           </label>
           <input
             id="register-avatar"
@@ -152,12 +159,12 @@ function Register() {
 
           {status.message && (
             <p className={status.type === "success" ? "form-success" : "form-error"}>
-              {status.message}
+              <strong>{status.message}</strong>
             </p>
           )}
 
           <button type="submit" className="primary-btn" disabled={loading}>
-            {loading ? "Registering..." : "Register"}
+            <strong>{loading ? "Registering..." : "Register"}</strong>
           </button>
 
           <div className="auth-secondary-actions">
@@ -166,7 +173,8 @@ function Register() {
               className="link-btn"
               onClick={() => navigate("/login")}
             >
-              Back to Login
+              <ArrowLeft size={14} style={{ marginRight: 4 }} />
+              <strong>Back to Login</strong>
             </button>
           </div>
         </form>

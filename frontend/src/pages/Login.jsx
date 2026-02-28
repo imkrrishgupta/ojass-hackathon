@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PhoneEntry from "./PhoneEntry";
 import OTPVerification from "./OTPVerification";
-import nearhelpLogo from "../assets/nearhelp-logo.svg";
+import { ShieldAlert } from "lucide-react";
 
 function Login({ onAuthSuccess }) {
 	const navigate = useNavigate();
@@ -32,7 +32,10 @@ function Login({ onAuthSuccess }) {
 			<header className="auth-topbar">
 				<div className="auth-topbar-inner">
 					<div className="auth-logo-wrap">
-						<img className="auth-logo" src={nearhelpLogo} alt="NearHelp" />
+						<span className="auth-brand">
+							<ShieldAlert size={20} />
+							<strong>NearHelp</strong>
+						</span>
 					</div>
 				</div>
 			</header>
