@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MapView from "../components/MapView";
-import { Activity, Clock3, MapPin, ShieldAlert, SlidersHorizontal, AlertCircle } from "lucide-react";
+import { Activity, Clock3, ShieldAlert, AlertCircle } from "lucide-react";
 import { axiosInstance } from "../api/axios.js";
-import { emitIncidentUpdate } from "../socket.js";
 
 function UserDashboard({ onLogout }) {
   const navigate = useNavigate();
@@ -18,9 +17,21 @@ function UserDashboard({ onLogout }) {
   const [assessmentStatus, setAssessmentStatus] = useState("");
   const [bestVolunteerByIncident, setBestVolunteerByIncident] = useState({});
   const [latestIncidentSuggestion, setLatestIncidentSuggestion] = useState(null);
-  const [showSosOptions, setShowSosOptions] = useState(false);
-  const [quickSosLoading, setQuickSosLoading] = useState(false);
-  const [quickSosStatus, setQuickSosStatus] = useState("");
+  const [activeFilters, setActiveFilters] = useState([]);
+
+  const FILTER_TYPES = [
+    { label: "Accident", type: "accident" },
+    { label: "Fire", type: "fire" },
+    { label: "Health", type: "health" },
+    { label: "Robbery", type: "robbery" },
+    { label: "Breakdown", type: "breakdown" },
+  ];
+
+  const toggleFilter = (type) => {
+    setActiveFilters((prev) =>
+      prev.includes(type) ? prev.filter((f) => f !== type) : [...prev, type]
+    );
+  };
 
   const fetchOpenIncidents = async () => {
     try {
@@ -163,45 +174,7 @@ function UserDashboard({ onLogout }) {
     }
   };
 
-  const triggerSelfSos = async () => {
-    setQuickSosLoading(true);
-    setQuickSosStatus("");
-    try {
-      const location = await new Promise((resolve) => {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-          () => resolve({ lat: 28.6139, lng: 77.209 })
-        );
-      });
 
-      const response = await axiosInstance.post("/incidents", {
-        type: "other",
-        description: "SOS triggered: Help needed for self",
-        radiusMeters: 2000,
-        lat: location.lat,
-        lng: location.lng,
-      });
-
-      const incident = response.data?.data;
-
-      emitIncidentUpdate({
-        _id: incident?._id,
-        type: "other",
-        title: "SOS: Help needed for self",
-        lat: location.lat,
-        lng: location.lng,
-        radiusMeters: 2000,
-      });
-
-      setQuickSosStatus("SOS triggered successfully with your current location.");
-      setShowSosOptions(false);
-      await fetchOpenIncidents();
-    } catch (error) {
-      setQuickSosStatus(error.response?.data?.message || "Failed to trigger SOS.");
-    } finally {
-      setQuickSosLoading(false);
-    }
-  };
 
   const totalResponders = useMemo(
     () => incidents.reduce((total, incident) => total + (incident.responders?.length || 0), 0),
@@ -212,7 +185,11 @@ function UserDashboard({ onLogout }) {
     assessmentQuestions.length > 0 &&
     assessmentQuestions.every((item) => String(assessmentAnswers[item.id] || "").trim().length > 0);
 
-  const latestIncidents = incidents.slice(0, 3);
+  const filteredIncidents = activeFilters.length > 0
+    ? incidents.filter((i) => activeFilters.includes(i.type))
+    : incidents;
+
+  const latestIncidents = filteredIncidents.slice(0, 3);
 
   return (
     <main className="dashboard-page user-dashboard-page">
@@ -236,13 +213,6 @@ function UserDashboard({ onLogout }) {
             </button>
           </div>
         </header>
-
-        {quickSosStatus ? (
-          <div className="quick-sos-banner">
-            <AlertCircle size={16} />
-            <p>{quickSosStatus}</p>
-          </div>
-        ) : null}
 
         <section className="dashboard-stats-row user-stats-row">
           <article className="stat-card stat-card--incidents">
@@ -282,26 +252,29 @@ function UserDashboard({ onLogout }) {
             <h3><strong>Filters</strong></h3>
             <p className="panel-caption"><strong>Select</strong> incident categories</p>
             <div className="filter-chip-list">
-              <span className="filter-chip active"><strong>Accident</strong></span>
-              <span className="filter-chip"><strong>Fire</strong></span>
-              <span className="filter-chip"><strong>Health</strong></span>
-              <span className="filter-chip"><strong>Robbery</strong></span>
-              <span className="filter-chip"><strong>Breakdown</strong></span>
-            </div>
-
-            <div className="panel-divider" />
-
-            <p className="panel-caption"><strong>Coverage</strong></p>
-            <div className="coverage-tags">
-              <span>
-                <MapPin size={14} /> <strong>Within 2 km</strong>
-              </span>
-              <span>
-                <MapPin size={14} /> <strong>Urban zone</strong>
-              </span>
-              <span>
-                <SlidersHorizontal size={14} /> <strong>High priority</strong> first
-              </span>
+              {FILTER_TYPES.map((f) => (
+                <span
+                  key={f.type}
+                  className={`filter-chip${activeFilters.includes(f.type) ? " active" : ""}`}
+                  onClick={() => toggleFilter(f.type)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && toggleFilter(f.type)}
+                >
+                  <strong>{f.label}</strong>
+                </span>
+              ))}
+              {activeFilters.length > 0 && (
+                <span
+                  className="filter-chip filter-chip--clear"
+                  onClick={() => setActiveFilters([])}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && setActiveFilters([])}
+                >
+                  <strong>Clear All</strong>
+                </span>
+              )}
             </div>
 
             <div className="panel-divider" />
@@ -389,7 +362,7 @@ function UserDashboard({ onLogout }) {
             <button
               type="button"
               className="ud-sos-button"
-              onClick={() => setShowSosOptions(true)}
+              onClick={() => navigate("/report-incident")}
             >
               <ShieldAlert size={24} className="sos-cta-icon" />
               <strong>SOS</strong>
@@ -481,44 +454,7 @@ function UserDashboard({ onLogout }) {
         </footer>
       </section>
 
-      {showSosOptions ? (
-        <div className="sos-option-overlay" role="dialog" aria-modal="true">
-          <div className="sos-option-popup ud-sos-popup">
-            <div className="ud-sos-popup-icon">
-              <ShieldAlert size={40} />
-            </div>
-            <h3><strong>Select SOS Type</strong></h3>
-            <p>Choose what kind of help request you want to trigger.</p>
-            <div className="sos-option-actions">
-              <button
-                type="button"
-                className="report-submit ud-sos-self"
-                onClick={triggerSelfSos}
-                disabled={quickSosLoading}
-              >
-                <strong>{quickSosLoading ? "Triggering SOS..." : "Help needed for you"}</strong>
-              </button>
-              <button
-                type="button"
-                className="report-submit ud-sos-other"
-                onClick={() => {
-                  setShowSosOptions(false);
-                  navigate("/report-incident");
-                }}
-              >
-                <strong>Help needed for someone</strong>
-              </button>
-              <button
-                type="button"
-                className="dashboard-btn ud-sos-cancel"
-                onClick={() => setShowSosOptions(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+
     </main>
   );
 }
