@@ -1,57 +1,38 @@
 #!/usr/bin/env bash
-set -e   # exit immediately on error
+set -e    # exit immediately on error
 
-echo "🚀 Starting Near Help Development Servers..."
-echo ""
-
-# Get the directory where the script is located
+# ── Navigate to project root ──
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Check if .env exists
-if [ ! -f ".env" ]; then
-  echo "⚠️  .env file not found!"
-  echo "   Run './setup.sh' first to set up the project"
-  exit 1
-fi
+# Copy root .env into backend so dotenv picks it up
+cp -f .env backend/.env 2>/dev/null || true
 
-# Function to cleanup background processes on exit
+# Also make a frontend .env with VITE_ vars (Vite needs its own file)
+grep '^VITE_' .env > frontend/.env 2>/dev/null || true
+
+# Cleanup background processes on exit
 cleanup() {
-  echo ""
-  echo "🛑 Shutting down servers..."
-  kill 0
+  kill 0 2>/dev/null
   exit
 }
-
-# Trap SIGINT (Ctrl+C) and SIGTERM
 trap cleanup SIGINT SIGTERM
 
-# Start backend server
-echo "🔧 Starting backend server..."
+# 1. Start backend
 cd backend
 npm start &
-BACKEND_PID=$!
 cd ..
 
-# Give backend a moment to start
 sleep 2
 
-# Start frontend server
-echo "🎨 Starting frontend server..."
+# 2. Start frontend dev server
 cd frontend
-npm run dev &
-FRONTEND_PID=$!
+npm run dev -- --host &
 cd ..
 
 echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "✅ Development servers are running!"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-echo "Backend:  http://localhost:5000"
-echo "Frontend: http://localhost:5173"
-echo ""
-echo "Press Ctrl+C to stop both servers"
+echo "Server running at http://localhost:5173"
+echo "Backend API at  http://localhost:5050"
 echo ""
 
 # Wait for background processes
