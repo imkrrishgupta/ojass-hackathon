@@ -2,9 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { axiosInstance } from "../api/axios.js";
 import { KeyRound, CheckCircle2, RefreshCw, ArrowLeft } from "lucide-react";
 
-const ADMIN_PHONE = "9625113505";
-const normalizePhone = (value) => String(value ?? "").replace(/\D/g, "").slice(-10);
-
 function OTPVerification({ phone, onSuccess, onBack }) {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
@@ -68,10 +65,8 @@ function OTPVerification({ phone, onSuccess, onBack }) {
       if (response.status === 200) {
         // Store tokens and user info
         const { accessToken, refreshToken, user } = response.data.data;
-        const isAdmin = normalizePhone(phone) === ADMIN_PHONE;
         const normalizedUser = {
           ...user,
-          role: isAdmin ? "admin" : "user",
           phone: user?.phone ?? `+91${phone}`,
         };
 
@@ -79,7 +74,7 @@ function OTPVerification({ phone, onSuccess, onBack }) {
         localStorage.setItem("refreshToken", refreshToken);
         localStorage.setItem("user", JSON.stringify(normalizedUser));
 
-        onSuccess(isAdmin ? "admin" : "user");
+        onSuccess(user?.role === "admin" ? "admin" : "user");
       }
     } catch (err) {
       setError(err.response?.data?.message || "Invalid OTP. Please try again.");

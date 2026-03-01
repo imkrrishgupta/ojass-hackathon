@@ -8,8 +8,6 @@ import UserDashboard from "./pages/UserDashboard";
 import SkillRegistry from "./pages/SkillRegistry";
 import CommunityResources from "./pages/CommunityResources";
 
-const ADMIN_PHONE = "9625113505";
-
 const getStoredUser = () => {
   try {
     const rawUser = localStorage.getItem("user");
@@ -19,13 +17,11 @@ const getStoredUser = () => {
   }
 };
 
-const normalizePhone = (phone) => String(phone ?? "").replace(/\D/g, "").slice(-10);
-
 const isAuthenticated = () => Boolean(localStorage.getItem("accessToken"));
 
 const isAdminUser = () => {
   const user = getStoredUser();
-  return normalizePhone(user?.phone) === ADMIN_PHONE;
+  return user?.role === "admin";
 };
 
 function App() {

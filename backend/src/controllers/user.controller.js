@@ -9,10 +9,7 @@ import jwt from "jsonwebtoken";
 
 const normalizePhone = (phone) => String(phone ?? "").replace(/\D/g, "").slice(-10);
 
-const ADMIN_PHONE = process.env.ADMIN_PHONE || "9625113505";
-
-const isAdmin = (user) =>
-  user?.role === "admin" || normalizePhone(user?.phone) === normalizePhone(ADMIN_PHONE);
+const isAdmin = (user) => user?.role === "admin";
 
 // ── Helper: generate both tokens and save refresh token to DB ─────────────────
 const generateAccessAndRefreshToken = async (userId) => {
